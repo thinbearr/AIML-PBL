@@ -1,0 +1,61 @@
+|--- av_N <= 0.50
+|   |--- tf_server <= 0.40
+|   |   |--- tf_26 <= 0.46
+|   |   |   |--- tf_27 <= 0.45
+|   |   |   |   |--- tf_execution <= 0.37
+|   |   |   |   |   |--- class: 0
+|   |   |   |   |--- tf_execution >  0.37
+|   |   |   |   |   |--- truncated branch of depth 2
+|   |   |   |--- tf_27 >  0.45
+|   |   |   |   |--- vendor_freq <= 0.07
+|   |   |   |   |   |--- class: 0
+|   |   |   |   |--- vendor_freq >  0.07
+|   |   |   |   |   |--- class: 1
+|   |   |--- tf_26 >  0.46
+|   |   |   |--- class: 1
+|   |--- tf_server >  0.40
+|   |   |--- i_H <= 0.50
+|   |   |   |--- class: 0
+|   |   |--- i_H >  0.50
+|   |   |   |--- class: 1
+|--- av_N >  0.50
+|   |--- ui_R <= 0.50
+|   |   |--- product_freq <= 0.02
+|   |   |   |--- pr_N <= 0.50
+|   |   |   |   |--- tf_malicious <= 0.12
+|   |   |   |   |   |--- truncated branch of depth 2
+|   |   |   |   |--- tf_malicious >  0.12
+|   |   |   |   |   |--- truncated branch of depth 2
+|   |   |   |--- pr_N >  0.50
+|   |   |   |   |--- ac_H <= 0.50
+|   |   |   |   |   |--- truncated branch of depth 2
+|   |   |   |   |--- ac_H >  0.50
+|   |   |   |   |   |--- truncated branch of depth 2
+|   |   |--- product_freq >  0.02
+|   |   |   |--- tf_denial <= 0.15
+|   |   |   |   |--- ac_H <= 0.50
+|   |   |   |   |   |--- truncated branch of depth 2
+|   |   |   |   |--- ac_H >  0.50
+|   |   |   |   |   |--- truncated branch of depth 2
+|   |   |   |--- tf_denial >  0.15
+|   |   |   |   |--- class: 0
+|   |--- ui_R >  0.50
+|   |   |--- pr_N <= 0.50
+|   |   |   |--- tf_privilege <= 0.33
+|   |   |   |   |--- cwe_79 <= 0.50
+|   |   |   |   |   |--- class: 0
+|   |   |   |   |--- cwe_79 >  0.50
+|   |   |   |   |   |--- class: 0
+|   |   |   |--- tf_privilege >  0.33
+|   |   |   |   |--- a_N <= 0.50
+|   |   |   |   |   |--- class: 0
+|   |   |   |   |--- a_N >  0.50
+|   |   |   |   |   |--- class: 1
+|   |   |--- pr_N >  0.50
+|   |   |   |--- tf_windows <= 0.37
+|   |   |   |   |--- tf_crafted <= 0.28
+|   |   |   |   |   |--- truncated branch of depth 2
+|   |   |   |   |--- tf_crafted >  0.28
+|   |   |   |   |   |--- class: 1
+|   |   |   |--- tf_windows >  0.37
+|   |   |   |   |--- class: 1

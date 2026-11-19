@@ -1,0 +1,47 @@
+# All assumptions for the prototype live here (synopsis Sec. 5.2-5.3).
+seed: 42
+
+data:
+  n_cves: 15000                 # synthetic CVE corpus size (PROTOTYPE: synthetic stand-in for NVD/KEV/EPSS)
+  start: "2019-01-01"
+  end: "2024-12-31"
+  download_date: "2026-01-01"  # censoring: only CVEs >= 12 months older than this are kept
+  target_pos_rate: 0.03        # ~1-3% of CVEs are exploited in the real world
+  label_window_days: 365
+  train_end: "2021-12-31"
+  val_end: "2022-12-31"        # test = everything after val_end
+
+model:
+  cost_fn: 50                  # cost of a missed exploited CVE (FN)
+  cost_fp: 1                   # cost of a false alarm (FP)
+  tfidf_terms: 100
+  top_cwe: 20
+  rf_trees: 200
+  rf_min_leaf: 5
+  dt_depth: 6
+
+network:
+  n_hosts_min: 200
+  n_hosts_max: 500
+  exposure_probs: {internet: 0.15, dmz: 0.25, internal: 0.60}
+  exposure_weight: {internet: 1.0, dmz: 0.6, internal: 0.3}
+  products_per_host: [3, 7]
+  affected_fraction: [0.6, 1.0]   # share of a product's CVEs present on a given host
+  dependency_prob: 0.25           # app patch requires the host's OS patch
+  base_effort_hours: {os: 4.0, server: 3.0, database: 5.0, browser: 1.0, library: 1.5, network: 3.5, app: 2.0}
+  downtime_hours:    {os: 1.5, server: 1.0, database: 2.0, browser: 0.0, library: 0.3, network: 1.5, app: 0.5}
+  downtime_penalty: 0.8           # cost per downtime hour x criticality
+
+optimize:
+  budget_fracs: [0.10, 0.20, 0.30]
+  downtime_fraction: 0.25         # maintenance-window downtime allowed, as fraction of total
+  nsga_pop: 100
+  nsga_gens: 150
+  ilp_time_limit: 30
+  attack_path_gamma: 1.5          # extension: weight of unpatched upstream gateway on downstream risk
+
+evaluation:
+  n_inventories: 20
+  ext_inventories: 20
+  robust_inventories: 10
+  robust_sigmas: [0.0, 0.1, 0.2, 0.4]   # lognormal noise on the planner's cost estimates

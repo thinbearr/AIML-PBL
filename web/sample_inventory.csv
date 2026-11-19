@@ -1,0 +1,178 @@
+hostname,exposure,criticality,software
+web-01,internet,4,Ubuntu 20.04 LTS
+web-01,internet,4,Node.js 16
+web-01,internet,4,Nginx 1.18
+web-01,internet,4,curl 7.68
+web-01,internet,4,WordPress 5.8
+web-01,internet,4,Apache HTTP Server 2.4.51
+web-02,internet,3,Ubuntu 20.04 LTS
+web-02,internet,3,Nginx 1.18
+web-02,internet,3,OpenSSL 1.1.1k
+web-03,internet,5,Ubuntu 20.04 LTS
+web-03,internet,5,Nginx 1.18
+web-03,internet,5,WordPress 5.8
+web-03,internet,5,OpenSSL 1.1.1k
+web-04,internet,3,Ubuntu 20.04 LTS
+web-04,internet,3,Node.js 16
+web-04,internet,3,curl 7.68
+web-04,internet,3,WordPress 5.8
+web-05,internet,3,Ubuntu 22.04
+web-05,internet,3,Apache HTTP Server 2.4.51
+web-05,internet,3,Nginx 1.18
+web-06,internet,4,Ubuntu 22.04
+web-06,internet,4,Apache HTTP Server 2.4.51
+web-06,internet,4,WordPress 5.8
+web-06,internet,4,Nginx 1.18
+web-06,internet,4,PHP 7.4
+web-06,internet,4,OpenSSL 1.1.1k
+web-07,internet,4,Ubuntu 20.04 LTS
+web-07,internet,4,PHP 7.4
+web-07,internet,4,Nginx 1.18
+web-07,internet,4,WordPress 5.8
+web-08,internet,3,Ubuntu 20.04 LTS
+web-08,internet,3,OpenSSL 1.1.1k
+web-08,internet,3,Node.js 16
+web-08,internet,3,WordPress 5.8
+app-01,dmz,5,Windows Server 2022
+app-01,dmz,5,OpenSSL 1.1.1k
+app-01,dmz,5,GitLab CE 14
+app-01,dmz,5,Log4j 2.14.1
+app-01,dmz,5,SharePoint 2019
+app-01,dmz,5,Microsoft Exchange Server 2019
+app-02,dmz,4,Windows Server 2019
+app-02,dmz,4,OpenSSL 1.1.1k
+app-02,dmz,4,Jenkins 2.303
+app-03,dmz,5,Windows Server 2022
+app-03,dmz,5,Jenkins 2.303
+app-03,dmz,5,Microsoft Exchange Server 2019
+app-03,dmz,5,Confluence 7.13
+app-03,dmz,5,OpenSSL 1.1.1k
+app-03,dmz,5,Apache Tomcat 9.0
+app-04,dmz,4,Windows Server 2022
+app-04,dmz,4,GitLab CE 14
+app-04,dmz,4,Microsoft Office 2019
+app-04,dmz,4,IIS 10.0
+app-05,dmz,3,Windows Server 2022
+app-05,dmz,3,Log4j 2.14.1
+app-05,dmz,3,GitLab CE 14
+app-05,dmz,3,Confluence 7.13
+app-05,dmz,3,IIS 10.0
+app-06,internal,3,Windows Server 2022
+app-06,internal,3,Microsoft Exchange Server 2019
+app-06,internal,3,IIS 10.0
+app-06,internal,3,Jenkins 2.303
+app-06,internal,3,Log4j 2.14.1
+app-06,internal,3,GitLab CE 14
+app-07,internal,5,Windows Server 2022
+app-07,internal,5,Log4j 2.14.1
+app-07,internal,5,IIS 10.0
+app-07,internal,5,GitLab CE 14
+app-07,internal,5,SharePoint 2019
+app-07,internal,5,Microsoft Exchange Server 2019
+app-08,internal,3,Windows Server 2022
+app-08,internal,3,Apache Tomcat 9.0
+app-08,internal,3,Jenkins 2.303
+db-01,internal,5,RHEL 8
+db-01,internal,5,MongoDB 4.4
+db-01,internal,5,glibc 2.31
+db-01,internal,5,MySQL 8.0
+db-01,internal,5,PostgreSQL 13
+db-01,internal,5,OpenSSL 1.1.1k
+db-02,internal,5,Ubuntu 20.04 LTS
+db-02,internal,5,glibc 2.31
+db-02,internal,5,MongoDB 4.4
+db-02,internal,5,Oracle Database 19c
+db-03,internal,5,Ubuntu 20.04 LTS
+db-03,internal,5,OpenSSL 1.1.1k
+db-03,internal,5,MongoDB 4.4
+db-03,internal,5,PostgreSQL 13
+db-03,internal,5,Oracle Database 19c
+db-04,internal,4,RHEL 8
+db-04,internal,4,PostgreSQL 13
+db-04,internal,4,OpenSSL 1.1.1k
+db-04,internal,4,glibc 2.31
+db-05,internal,4,Ubuntu 20.04 LTS
+db-05,internal,4,Microsoft SQL Server 2017
+db-05,internal,4,glibc 2.31
+db-05,internal,4,MySQL 8.0
+db-06,internal,5,Ubuntu 20.04 LTS
+db-06,internal,5,Oracle Database 19c
+db-06,internal,5,glibc 2.31
+db-06,internal,5,Microsoft SQL Server 2017
+db-06,internal,5,PostgreSQL 13
+db-07,internal,4,Ubuntu 20.04 LTS
+db-07,internal,4,MongoDB 4.4
+db-07,internal,4,glibc 2.31
+db-07,internal,4,OpenSSL 1.1.1k
+db-07,internal,4,MySQL 8.0
+db-07,internal,4,PostgreSQL 13
+db-08,internal,5,RHEL 8
+db-08,internal,5,MySQL 8.0
+db-08,internal,5,PostgreSQL 13
+db-08,internal,5,MongoDB 4.4
+wks-01,internal,2,Windows 10 Enterprise
+wks-01,internal,2,Microsoft Office 2016
+wks-01,internal,2,Google Chrome 96
+wks-01,internal,2,Zlib 1.2.11
+wks-01,internal,2,Adobe Acrobat Reader DC
+wks-02,internal,2,macOS 13
+wks-02,internal,2,Microsoft Edge 96
+wks-02,internal,2,Microsoft Office 2016
+wks-03,internal,1,Windows 10 Enterprise
+wks-03,internal,1,Microsoft Office 2016
+wks-03,internal,1,Adobe Acrobat Reader DC
+wks-03,internal,1,Mozilla Firefox 95
+wks-04,internal,2,Windows 11
+wks-04,internal,2,Adobe Acrobat Reader DC
+wks-04,internal,2,Google Chrome 96
+wks-04,internal,2,Microsoft Office 2016
+wks-04,internal,2,Mozilla Firefox 95
+wks-05,internal,3,Windows 11
+wks-05,internal,3,Microsoft Edge 96
+wks-05,internal,3,Google Chrome 96
+wks-05,internal,3,Mozilla Firefox 95
+wks-05,internal,3,Microsoft Office 2016
+wks-05,internal,3,Adobe Acrobat Reader DC
+wks-06,internal,2,Windows 11
+wks-06,internal,2,Microsoft Office 2016
+wks-06,internal,2,Google Chrome 96
+wks-06,internal,2,Mozilla Firefox 95
+wks-07,internal,2,Windows 10 Enterprise
+wks-07,internal,2,Microsoft Office 2016
+wks-07,internal,2,Microsoft Edge 96
+wks-08,internal,1,macOS 13
+wks-08,internal,1,Microsoft Office 2016
+wks-08,internal,1,Microsoft Edge 96
+wks-08,internal,1,Mozilla Firefox 95
+wks-08,internal,1,Adobe Acrobat Reader DC
+wks-09,internal,2,macOS 13
+wks-09,internal,2,Zlib 1.2.11
+wks-09,internal,2,Mozilla Firefox 95
+wks-09,internal,2,Microsoft Office 2016
+wks-09,internal,2,Google Chrome 96
+wks-10,internal,3,macOS 13
+wks-10,internal,3,Mozilla Firefox 95
+wks-10,internal,3,Microsoft Office 2016
+wks-10,internal,3,Adobe Acrobat Reader DC
+wks-11,internal,2,macOS 13
+wks-11,internal,2,Google Chrome 96
+wks-11,internal,2,Microsoft Edge 96
+wks-12,internal,3,Windows 11
+wks-12,internal,3,Zlib 1.2.11
+wks-12,internal,3,Microsoft Office 2016
+wks-12,internal,3,Microsoft Edge 96
+wks-13,internal,3,macOS 13
+wks-13,internal,3,Microsoft Edge 96
+wks-13,internal,3,Google Chrome 96
+wks-13,internal,3,Mozilla Firefox 95
+wks-13,internal,3,Microsoft Office 2016
+wks-14,internal,2,Windows 11
+wks-14,internal,2,Microsoft Edge 96
+wks-14,internal,2,Mozilla Firefox 95
+wks-14,internal,2,Adobe Acrobat Reader DC
+net-01,internet,4,Junos 21.2
+net-02,internet,5,Cisco IOS XE 17.3
+net-03,internet,4,Junos 21.2
+net-04,internet,5,Junos 21.2
+legacy-01,internal,3,AcmeInventoryTool 3.2
+legacy-01,internal,3,Windows Server 2019
