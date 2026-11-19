@@ -1,27 +1,44 @@
-/* The single overview page: what the project does, in one screen. Replaces the earlier longer home page. */
-PAGES.home.render = async v => {
+/* A schematic plate introduces the exposure tiers. The network section uses live hosts. */
+function exposurePlate() {
+  const point = (angle, radius) => {
+    const relief = 1 + .10 * Math.sin(3 * angle + radius) + .07 * Math.cos(5 * angle - radius) + .035 * Math.sin(8 * angle);
+    return [158 + 122 * radius * relief * Math.cos(angle), 100 + 77 * radius * relief * Math.sin(angle)];
+  };
+  const contours = Array.from({length: 15}, (_, i) => {
+    const path = Array.from({length: 181}, (_, j) => point(j * Math.PI / 90, .14 + i * .06).map(v=>v.toFixed(1)).join(",")).join(" ");
+    return `<polygon points="${path}" fill="none" stroke="var(--ink2)" stroke-width="${i % 4 ? .55 : 1.15}"/>`;
+  }).join("");
+  const dots = Array.from({length: 48}, (_, i) => {
+    const r = .2 + ((i * 37) % 67) / 100, [x,y] = point(i * 2.4, r), risk = r > .70;
+    return `<circle cx="${x}" cy="${y}" r="${risk ? 3.5 : 2}" fill="${risk ? "var(--bad)" : "var(--ink)"}" stroke="var(--bg)" stroke-width=".7"/>`;
+  }).join("");
+  return `<figure class="plate"><div class="plate-label"><span>PLATE 01</span> EXPOSURE TIERS</div><svg viewBox="0 0 360 198" role="img" aria-label="Schematic contour map of internal, DMZ and internet exposure tiers">
+    <defs><pattern id="grid" patternUnits="userSpaceOnUse" width="18" height="18"><path d="M18 0H0V18" fill="none" stroke="var(--line)" stroke-width=".7"/></pattern></defs>
+    <rect width="360" height="198" fill="url(#grid)"/>${contours}${dots}
+    <g fill="none" stroke="var(--ink)" stroke-width=".8"><path d="M166 92l38 -42h81M213 110l38 -25h34M261 132h24"/></g>
+    <g class="map-label"><text x="289" y="53">Internal</text><text x="289" y="88">DMZ</text><text x="289" y="135">Internet</text></g></svg><figcaption>Exposure by network position · schematic</figcaption></figure>`;
+}
+
+PAGES.home.render = async (v, token) => {
   const cmp = await api("/api/compare");
-  const row = (s, b = 0.2) => cmp.summary.find(r => r.strategy === s && Math.abs(r.budget_frac - b) < 1e-6);
+  const rows = cmp.summary.filter(r => Math.abs(r.budget_frac - .2) < 1e-6);
+  const coverage = key => rows.find(r => r.strategy === key).coverage_mean;
+  const ratio = nf(coverage("ml_ilp") / coverage("cvss_sorted"), 1);
+  if (token !== _routeToken) return;
   v.innerHTML = `
-  <div class="kick">Exploit-aware patch prioritization</div>
-  <h1 class="title">Which patches do we apply first, when we can only afford some?</h1>
-  <div class="grid g3 mt">
-    <div class="card stat"><div class="v">25,000+</div><div class="l">new CVEs a year</div></div>
-    <div class="card stat"><div class="v" style="color:var(--acc2)">1–2%</div><div class="l">ever exploited</div></div>
-    <div class="card stat"><div class="v" style="color:var(--bad)">≈ random</div><div class="l">patching by CVSS alone</div></div>
-  </div>
-  <div class="flow mt2">
-    <div class="step"><b>Predict</b><span>ML estimates how likely each CVE is to be exploited</span></div>
-    <div class="step"><b>Translate</b><span>risk and cost of every patch on every host</span></div>
-    <div class="step"><b>Optimize</b><span>best patch set within the budget</span></div>
-    <div class="step"><b>Prove</b><span>backtest against what was exploited later</span></div>
-  </div>
-  <div class="card mt2"><div class="head"><div class="grow"><h3>Later-exploited CVEs covered at a 20% budget</h3></div><span class="tag amb">${cmp.n_inventories} networks · synthetic data</span></div>
-    <div id="h-bars"></div></div>
-  <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap"><a class="btn" href="#/model">Model</a><a class="btn" href="#/planner">Planner</a></div>`;
-  BarChart($("#h-bars"), { max: 100, fmt: x => pc(x, 1), rows: [
-    { label: "Random", value: row("random").coverage_mean, color: STRAT.random.color },
-    { label: "CVSS-sorted", value: row("cvss_sorted").coverage_mean, color: STRAT.cvss_sorted.color },
-    { label: "EPSS-sorted", value: row("epss_sorted").coverage_mean, color: STRAT.epss_sorted.color },
-    { label: "ML + ILP (ours)", value: row("ml_ilp").coverage_mean, color: STRAT.ml_ilp.color, hi: true }] });
+    <header class="opening"><div><div class="kick">01 · The problem</div>
+    <h1 class="title">Which patches<br>come first?</h1>
+    <p class="lede">Cost-sensitive, exploit-aware vulnerability prioritization under a limited budget of patch hours.</p>
+    <a class="btn" href="#/planner">Open patch planner</a> <a class="textlink" href="#/evidence">Read the evidence</a></div>${exposurePlate()}</header>
+    <div class="scoreboard">
+      <div class="stat"><div class="l">Coverage advantage</div><div class="v"><mark>${ratio}×</mark></div><small><sup>1</sup> ML + ILP relative to CVSS-sorted</small></div>
+      <div class="stat"><div class="l">Patch budget</div><div class="v">20<span>%</span></div><small><sup>2</sup> Share of total patch effort</small></div>
+      <div class="stat"><div class="l">Study population</div><div class="v">${cmp.n_inventories}</div><small><sup>3</sup> Simulated network inventories</small></div>
+    </div>
+    <div class="results-layout"><section class="card overview-result"><div class="figure-label">FIG. 1 <span>/</span> BACKTEST EVIDENCE</div>
+      <h2>Coverage of later-exploited CVEs</h2><div class="sub">Mean coverage at a fixed 20% budget</div><div id="h-bars"></div>
+      <p class="caption">Each strategy faces the same patch-hour limit. Coverage is measured against subsequent KEV labels.</p></section>
+      <aside class="marginal"><div class="figure-label">Margin note 01</div><h3>Why cost matters</h3><p>A CVE score estimates the likelihood of exploitation. A patch decision also depends on host exposure, business impact and the hours needed to apply it.</p><a class="textlink" href="#/network">Explore network risk</a></aside></div>
+    <h2 class="mt2">Study design</h2><div class="flow"><div class="step"><b>Predict</b><span>Estimate each CVE’s exploit probability.</span></div><div class="step"><b>Translate</b><span>Calculate risk and patch cost for each host.</span></div><div class="step"><b>Optimize</b><span>Select patches within the available hours.</span></div><div class="step"><b>Backtest</b><span>Compare plans with later exploitation.</span></div></div>`;
+  BarChart($("#h-bars"), {max:100, fmt:x=>pc(x,1), rows:["random","cvss_sorted","epss_sorted","ml_ilp"].map(k=>({label:STRAT[k].name,value:coverage(k),color:STRAT[k].color,hi:k==="ml_ilp"}))});
 };

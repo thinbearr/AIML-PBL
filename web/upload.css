@@ -1,17 +1,6 @@
-.drop{border:1px dashed var(--acc);border-radius:4px;padding:34px 20px;text-align:center;cursor:pointer;background:var(--acc-soft);transition:.2s}
-.drop:hover,.drop.over{box-shadow:0 0 28px -6px var(--acc);background:rgba(57,255,20,.15)}
-.drop b{display:block;font-size:15px;color:var(--acc);text-shadow:var(--glowtxt);margin-bottom:6px}
-.drop span{color:var(--mut);font-size:12px}
-.term{background:#010402;border:1px solid var(--line2);border-radius:4px;padding:14px 16px;font:12.5px/1.75 var(--mono);min-height:120px;max-height:320px;overflow:auto}
-.term .l{white-space:pre-wrap;word-break:break-word}.term .ok{color:var(--acc)}.term .warn{color:var(--acc2)}.term .err{color:var(--bad)}.term .cmd{color:var(--ink)}
-.term .cur:after{content:"█";animation:blink 1s steps(1) infinite;color:var(--acc)}
-a.btn{text-decoration:none}
-/* keep the top bar inside the viewport */
-html,body{overflow-x:hidden}
-.top{flex-wrap:wrap;row-gap:8px}
-#invpill{max-width:min(420px,100%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* less text: hide the small descriptive sub-lines and the strategy blurbs */
-.sub,.opt span,.lede{display:none}
-.card>.head .sub{display:none}
-.callout{display:none}
-.pagelinks{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 20px}
+.drop{border:1px dashed var(--acc);padding:32px 18px;text-align:center;background:var(--acc-soft);cursor:pointer}
+.drop:is(:hover,.over){border-style:solid}.drop b{display:block;color:var(--acc);margin-bottom:6px}.drop span{font-size:15px;color:var(--mut)}
+.term{font:15px/1.6 var(--mono);min-height:130px;max-height:340px;overflow:auto;background:var(--bg);border-block:2px solid var(--ink)}
+.term .entry{display:flex;gap:10px;align-items:baseline;border-bottom:1px solid var(--line);padding:5px 8px;overflow-wrap:anywhere}
+.term time{font-size:12px;color:var(--mut);border-right:1px solid var(--line);padding-right:8px;flex:none}
+.term .warn,.term .err{color:var(--bad)}.term .ok{color:var(--acc)}

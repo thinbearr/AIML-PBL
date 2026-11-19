@@ -443,6 +443,7 @@ def api_pareto(q):
     else:
         got, ilp, total = float(P.benefit.to_numpy()[xb].sum()), float(P.benefit.to_numpy()[ilp_x].sum()), inv.total_risk
     return {"snapshots": snaps, "runtime_s": rt, "selected": got, "ilp": ilp, "gap_pct": 100 * (ilp - got) / ilp,
+            "selected_cost_pct": float(100 * P.cost.to_numpy()[xb].sum() / inv.T),
             "total": total, "pct": pct, "ext": ext, "pop": pop, "gens": gens}
 
 
@@ -520,8 +521,24 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(next((a for a in sys.argv[1:] if a.isdigit()), 8000))
     host = sys.argv[sys.argv.index("--host") + 1] if "--host" in sys.argv else "127.0.0.1"   # 0.0.0.0 = reachable from other devices
-    srv = ThreadingHTTPServer((host, port), Handler)
-    print(f"Demo running at http://{'localhost' if host == '127.0.0.1' else host}:{port}  (Ctrl+C to stop)")
+    class Server(ThreadingHTTPServer):
+        # HTTPServer sets SO_REUSEADDR, which on Windows lets a second server silently bind a port that is
+        # already in use; requests are then split between the two. Claim the port exclusively instead.
+        allow_reuse_address = sys.platform != "win32"
+
+        def server_bind(self):
+            if sys.platform == "win32":
+                import socket
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            super().server_bind()
+
+    try:
+        srv = Server((host, port), Handler)
+    except OSError as e:
+        sys.exit(f"Port {port} is already in use ({e}). Stop the other server or pass a different port.")
+    # 127.0.0.1, not "localhost": localhost resolves to ::1 first and may reach a different app on that port.
+    url = f"http://{'127.0.0.1' if host in ('127.0.0.1', '0.0.0.0') else host}:{port}"
+    print(f"Demo running at {url}  (Ctrl+C to stop)", flush=True)
     if "--no-browser" not in sys.argv:
-        webbrowser.open(f"http://localhost:{port}")
+        webbrowser.open(url)
     srv.serve_forever()

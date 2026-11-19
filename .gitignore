@@ -22,3 +22,20 @@ notebooks/scored_cves.csv
 # Secrets: never commit keys
 .env
 *.key
+
+# Playwright MCP page snapshots
+.playwright-mcp/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# More secrets / local env variants
+.env.*
+*.pem
+
+# OS junk
+Thumbs.db
+desktop.ini
+.DS_Store

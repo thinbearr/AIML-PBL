@@ -1,35 +1,35 @@
 {
   "logreg": {
-    "pr_auc": 0.09096991172853745,
+    "pr_auc": 0.08954074729776318,
     "recall@100": 0.14772727272727273,
-    "brier_raw": 0.10946738730688574,
-    "brier_calibrated": 0.016653010652428035,
+    "brier_raw": 0.10912596736326931,
+    "brier_calibrated": 0.016745634304414104,
     "threshold": 0.032407407407407406,
-    "expected_cost": 2457.0
+    "expected_cost": 2506.0
   },
   "decision_tree": {
-    "pr_auc": 0.036388812641297494,
+    "pr_auc": 0.036283658315892156,
     "recall@100": 0.022727272727272728,
-    "brier_raw": 0.17447618987585387,
-    "brier_calibrated": 0.016702620005103815,
-    "threshold": 0.03296703296703297,
-    "expected_cost": 2705.0
+    "brier_raw": 0.17465658258555905,
+    "brier_calibrated": 0.01670349624743967,
+    "threshold": 0.02945524902101055,
+    "expected_cost": 2708.0
   },
   "random_forest": {
-    "pr_auc": 0.10366780387118513,
+    "pr_auc": 0.09331871936980185,
     "recall@100": 0.14772727272727273,
-    "brier_raw": 0.023287058255750056,
-    "brier_calibrated": 0.0163711664817905,
-    "threshold": 0.037037037037037035,
-    "expected_cost": 2321.0
+    "brier_raw": 0.02342194352028387,
+    "brier_calibrated": 0.01636583109657369,
+    "threshold": 0.02452316076294278,
+    "expected_cost": 2243.0
   },
   "gradient_boosting": {
-    "pr_auc": 0.09221718411011337,
-    "recall@100": 0.1590909090909091,
-    "brier_raw": 0.0674071030209742,
-    "brier_calibrated": 0.01652238251251969,
-    "threshold": 0.03278688524590164,
-    "expected_cost": 2443.0
+    "pr_auc": 0.08145743256447473,
+    "recall@100": 0.125,
+    "brier_raw": 0.06828279350930706,
+    "brier_calibrated": 0.016497658453401627,
+    "threshold": 0.02304147465437788,
+    "expected_cost": 2479.0
   },
   "cvss_baseline": {
     "pr_auc": 0.045767848208528514,

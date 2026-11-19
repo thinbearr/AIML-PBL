@@ -4,12 +4,12 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "
 const ST = { meta: null, plan: null, strategies: null, pct: 20, strategy: "ml_ilp", dt: 25, deps: true, ext: false,
   hindsight: false, notes: false, tour: null };
 const STRAT = {
-  random: { name: "Random", color: "#6f8f7b", desc: "Lower bound. Picks patches blindly until the budget is spent." },
-  cvss_sorted: { name: "CVSS-sorted", color: "#ffb000", desc: "What most teams do today: highest CVSS severity first." },
-  epss_sorted: { name: "EPSS-sorted", color: "#ff4fd8", desc: "Public exploit predictor (a competing baseline, never a feature)." },
-  ml_greedy: { name: "ML + Greedy", color: "#00e5ff", desc: "Our risk model; ranks patches by benefit ÷ cost." },
-  ml_ilp: { name: "ML + ILP", color: "#39ff14", desc: "Our risk model; exact optimum for the linear budget problem." },
-  ml_nsga2: { name: "ML + NSGA-II", color: "#ff3b5c", desc: "Our risk model; genetic search, handles non-linear extensions." },
+  random: { name: "Random", color: "var(--mut)", desc: "Lower bound. Picks patches blindly until the budget is spent." },
+  cvss_sorted: { name: "CVSS-sorted", color: "var(--ink2)", desc: "What most teams do today: highest CVSS severity first." },
+  epss_sorted: { name: "EPSS-sorted", color: "var(--ink)", desc: "Public exploit predictor (a competing baseline, never a feature)." },
+  ml_greedy: { name: "ML + Greedy", color: "var(--acc)", desc: "Our risk model; ranks patches by benefit ÷ cost." },
+  ml_ilp: { name: "ML + ILP", color: "var(--acc)", desc: "Our risk model; exact optimum for the linear budget problem." },
+  ml_nsga2: { name: "ML + NSGA-II", color: "var(--acc)", desc: "Our risk model; genetic search, handles non-linear extensions." },
 };
 const ICON = {
   home: "M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
@@ -42,10 +42,21 @@ const pc = (v, d = 1) => nf(v, d) + "%";
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("on"), 2600); }
 
 /* ---------- shared UI blocks ---------- */
-function head(p) {   // title only: no explanation boxes, you present the page yourself
-  return `<div class="kick">${String(p.kick).replace(/^Step \d+ · /, "")}</div><h1 class="title">${p.title}</h1>`;
+function head(p) {
+  const page = PAGES[location.hash.slice(2).split("?")[0]] || PAGES.home;
+  const notes = {
+    model:["Calibration","A calibrated probability can be compared with the observed exploitation rate."],
+    network:["Exposure","The exposure weight represents a host’s position in the simulated network."],
+    planner:["Patch hours","The budget limits the combined effort of the selected patches."],
+    pareto:["Pareto front","A plan is non-dominated if no alternative costs less or the same and removes at least as much risk, with one strict improvement."],
+    evidence:["Coverage","The share of later-exploited host–CVE instances covered by a plan."],
+    upload:["Unit of observation","One inventory row links a host to an installed software product."],
+    roadmap:["Scope","The current evaluation uses synthetic CVE and KEV records."]
+  };
+  const note = notes[page.id];
+  return `<header class="sectionhead"><div><div class="kick">${String(page.n).padStart(2, "0")} · ${page.nav}</div><h1 class="title">${p.title}</h1><p class="lede">${p.lede}</p></div>${note ? `<aside class="definition"><b>${note[0]}</b>${note[1]}</aside>` : ""}</header>`;
 }
-const kpi = (label, value, sub = "", cls = "", extra = "") => `<div class="card kpi ${cls}"><div class="v">${value}</div><div class="l">${label}</div><div class="s">${sub}</div>${extra}</div>`;
+const kpi = (label, value, sub = "", cls = "", extra = "") => `<div class="card kpi ${cls}"><div class="v">${["RF PR-AUC","Modelled risk removed","Positive rate","Products matched"].includes(label) || label.startsWith("NSGA-II @") ? `<mark>${value}</mark>` : value}</div><div class="l">${label}</div><div class="s">${sub}</div>${extra}</div>`;
 function openDrawer(kick, title, html) {
   $("#dk").textContent = kick; $("#dt").textContent = title; $("#db").innerHTML = html;
   $("#drawer").classList.add("open"); $("#scrim").classList.add("on");
@@ -72,14 +83,21 @@ function setBusy(el, on) { el && el.classList.toggle("busy", on); }
 
 /* ---------- shell ---------- */
 function buildShell() {
-  const groups = {};
-  NAV.filter(p => !p.hidden).forEach(p => (groups[p.group] ||= []).push(p));
-  $("#side").innerHTML = `<div class="brand"><div class="mark">${ic("bolt", 20)}</div><div><b>Exploit-Aware<br>Patch Prioritization</b><span>IS353IA · AIML Lab</span></div></div>` +
-    Object.entries(groups).map(([g, ps]) => `<div class="navgroup">${g}</div>` + ps.map(p => `<a class="nav" data-id="${p.id}" href="#/${p.id}"><span class="n">${p.n}</span>${esc(p.nav)}</a>`).join("")).join("") +
-    `<div class="sidefoot">Prototype · all data is <b>synthetic</b></div>`;
-  $("#top").innerHTML = `<button class="iconbtn menubtn" id="menu" aria-label="Menu">☰</button><span class="pill syn"><i></i>Synthetic data · prototype</span><span class="pill" id="invpill" style="cursor:pointer" title="Generate a new random network inventory"></span><span class="grow"></span>`;
+  // The eight sections scroll sideways when they don't fit; Appendices sits outside the scroller so its dropdown is never clipped.
+  $("#side").innerHTML = `<div class="navtrack"><div class="navscroll" id="navscroll">` +
+    NAV.filter(p => !p.hidden).map(p => `<a class="nav" data-id="${p.id}" href="#/${p.id}"><span class="n">${String(p.n).padStart(2, "0")}</span><span class="t">${p.nav}</span></a>`).join("") +
+    `<span class="nav-ink" id="navink" aria-hidden="true"></span></div>
+    <details class="appendices"><summary>Appendices</summary><div class="dd">${NAV.filter(p=>p.hidden).map(p=>`<a class="nav" data-id="${p.id}" href="#/${p.id}"><span class="n">${String(p.n).padStart(2, "0")}</span>${p.nav}</a>`).join("")}</div></details></div>`;
+  $("#top").innerHTML = `<a class="wordmark" href="#/intro" title="Back to the cover"><span class="bulletin-mark" aria-hidden="true">✚</span><b>The Triage Bulletin</b></a><span class="running-title">Research series <b>/</b> No. 01 <b>/</b> Field report</span><span class="pill syn">Synthetic data</span><span class="grow"></span><button class="pill" id="invpill" title="Generate a new network inventory"></button><div class="seg themes"><button data-mode="light">Paper</button><button data-mode="dark">Darkroom</button></div>`;
+  const setMode = mode => {
+    document.documentElement.dataset.theme = mode;
+    $$(".themes button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === mode));
+  };
+  let mode = "light";
+  try { if(localStorage.getItem("bulletin-mode") === "dark") mode = "dark"; } catch {}
+  setMode(mode);
+  $$(".themes button").forEach(b => b.onclick = () => {setMode(b.dataset.mode); try {localStorage.setItem("bulletin-mode", b.dataset.mode);} catch {}});
   $("#invpill").onclick = openInventoryModal;
-  $("#menu").onclick = () => { $("#side").classList.add("open"); $("#scrim").classList.add("on"); };
   $("#dx").onclick = closeDrawer; $("#scrim").onclick = closeDrawer;
   document.addEventListener("keydown", e => {
     if (e.target.matches("input,select,textarea")) return;
@@ -90,7 +108,7 @@ function updatePill() {
   const m = ST.meta;
   $("#invpill").innerHTML = m.source === "upload"
     ? `${ic("net", 14)} <b style="color:var(--acc)">uploaded</b> ${esc(m.name)} · ${m.hosts} hosts · ${m.patches} patches`
-    : `${ic("net", 14)} synthetic network · ${m.hosts} hosts · ${m.patches} patches`;
+    : `${ic("net", 14)} ${m.hosts} hosts · ${m.patches} patches`;
 }
 function openInventoryModal() {
   const m = $("#modal");
@@ -110,27 +128,47 @@ function openInventoryModal() {
 /* ---------- router ---------- */
 let _routeToken = 0;
 async function route(force) {
-  const id = (location.hash.replace(/^#\//, "") || "home").split("?")[0];
+  if (!ST.meta) return;
+  const id = (location.hash.replace(/^#\//, "") || "intro").split("?")[0];
   const page = PAGES[id] || PAGES.home, tok = ++_routeToken;
   $$(".nav").forEach(n => n.classList.toggle("on", n.dataset.id === page.id)); closeDrawer();
+  document.body.classList.toggle("is-intro", page.id === "intro");
+  $(".appendices")?.removeAttribute("open");
+  $(".appendices")?.classList.toggle("on", !!page.hidden);
+  window.Motion?.navInk();
   const v = $("#view"); v.style.animation = "none"; void v.offsetWidth; v.style.animation = "";
   v.innerHTML = `<div class="card"><div class="skel" style="width:40%;margin-bottom:12px"></div><div class="skel" style="width:80%;margin-bottom:8px"></div><div class="skel" style="width:65%"></div></div>`;
-  try { const html = await page.render(v, tok); if (tok !== _routeToken) return; }
+  try { await page.render(v, tok); if (tok !== _routeToken) return; }
   catch (e) { if (tok === _routeToken) v.innerHTML = `<div class="card"><h2>Something went wrong</h2><p class="mut">${esc(e.message)}</p></div>`; console.error(e); }
   if (!force) scrollTo({ top: 0 });
-  // pages that are not tabs: a back button; the Planner gets buttons that open them
-  const t = $("#view .title");
-  if (t && !$("#view .pagelinks")) {
-    const links = page.hidden ? [["planner", "← Planner"]] : page.id === "planner" ?
-      [["upload", "Upload your data"], ["network", "Network view"], ["pareto", "Optimizer lab"], ["evidence", "Backtest results"]] : [];
-    if (links.length) t.insertAdjacentHTML("afterend", `<div class="pagelinks">${links.map(([id, l]) => `<a class="btn ghost sm" href="#/${id}">${l}</a>`).join("")}</div>`);
+  if (page.hidden) {
+    $("#view .sectionhead")?.insertAdjacentHTML("afterend", '<div class="pagelinks"><a class="btn ghost sm" href="#/planner">Return to planner</a></div>');
+  }
+  if (page.id === "planner") {
+    $("#view .sectionhead")?.insertAdjacentHTML("afterend", `<div class="pagelinks">${["upload","network","pareto","evidence"].map(id=>`<a class="btn ghost sm" href="#/${id}">${PAGES[id].nav}</a>`).join("")}</div>`);
+  }
+  if (window.Motion) window.Motion.after(v, page); else animateNumbers(v);   // Motion counts numbers up as they scroll into view
+}
+function animateNumbers(view) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  for (const el of view.querySelectorAll(".v mark,.v:not(:has(*))")) {
+    const original = el.textContent, match = /^([\d,]+(?:\.\d+)?)(.*)$/.exec(original);
+    if (!match) continue;
+    const end = Number(match[1].replaceAll(",","")), decimals = (match[1].split(".")[1] || "").length;
+    const start = performance.now();
+    const tick = time => {
+      if (!el.isConnected) return;
+      const fraction = Math.min(1,(time-start)/550);
+      el.textContent = fraction === 1 ? original : nf(end*fraction,decimals)+match[2];
+      if (fraction < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
 }
 window.addEventListener("hashchange", () => route());
 
 /* ---------- boot ---------- */
 async function boot() {
-  document.documentElement.dataset.theme = "dark";  // single radium-on-black terminal theme
   buildShell();
   try { ST.meta = await api("/api/meta"); ST.dt = Math.round(ST.meta.downtime_default); updatePill(); }
   catch (e) { $("#view").innerHTML = `<div class="card"><h2>Server not reachable</h2><p>${esc(e.message)}</p></div>`; return; }
