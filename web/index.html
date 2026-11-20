@@ -1,9 +1,11 @@
 <!doctype html>
 <html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/bulletin-mark.svg">
 <title>The Triage Bulletin · Exploit-Aware Vulnerability Prioritization</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/upload.css"><link rel="stylesheet" href="/motion.css">
+<link rel="stylesheet" href="/field.css"><link rel="stylesheet" href="/depth.css"><link rel="stylesheet" href="/risk-lab.css"><link rel="stylesheet" href="/fx.css">
 </head><body>
 <div class="app">
   <div class="chrome" id="chrome">
@@ -14,16 +16,23 @@
   <main class="view" id="view"></main>
 </div>
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer"><div class="dh"><div style="flex:1"><div class="kick" id="dk" style="margin:0 0 4px"></div><h2 id="dt" style="margin:0"></h2></div><button class="iconbtn" id="dx" aria-label="Close">✕</button></div><div class="db" id="db"></div></aside>
-<div class="modal" id="modal"></div>
-<div class="toast" id="toast"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dt"><div class="dh"><div style="flex:1"><div class="kick" id="dk" style="margin:0 0 4px"></div><h2 id="dt" style="margin:0"></h2></div><button class="iconbtn" id="dx" aria-label="Close">✕</button></div><div class="db" id="db"></div></aside>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="inventory-title"></div>
+<div class="toast" id="toast" role="status"></div>
 <script src="/charts.js"></script>
 <script src="/app.js"></script>
 <script src="/pages.js"></script>
 <script src="/pages2.js"></script>
+<script src="/risk-map.js"></script>
+<script src="/network.js"></script>
+<script src="/breach.js"></script>
+<script src="/trace.js"></script>
+<script src="/replay.js"></script>
 <script src="/upload.js"></script>
 <script src="/overview.js"></script>
 <script src="/motion.js"></script>
+<script src="/atlas.js"></script>
 <script src="/intro.js"></script>
+<script src="/fx.js"></script>
 <script>boot()</script>
 </body></html>

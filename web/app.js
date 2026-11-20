@@ -29,6 +29,8 @@ const ICON = {
 };
 const ic = (k, s = 18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ICON[k]}"/></svg>`;
 
+const bulletinMark = '<img class="bulletin-logo" src="/bulletin-mark.svg" width="38" height="38" alt="">';
+
 async function api(path, params = {}) {
   const u = new URL(path, location.origin);
   for (const k in params) u.searchParams.set(k, params[k]);
@@ -36,7 +38,8 @@ async function api(path, params = {}) {
   if (j.error) throw new Error(j.error);
   return j;
 }
-const planParams = () => ({ strategy: ST.strategy, pct: ST.pct, dt: ST.dt, deps: ST.deps ? 1 : 0, ext: ST.ext ? 1 : 0 });
+const budgetPercent = value => Number(value.toFixed(2)).toString();
+const planParams = () => ({ strategy: ST.strategy, pct: ST.pct, dt: ST.dt, deps: ST.deps ? 1 : 0, ext: ST.ext ? 1 : 0, inventory_id:ST.meta.inventory_id });
 const debounce = (f, ms = 250) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
 const pc = (v, d = 1) => nf(v, d) + "%";
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove("on"), 2600); }
@@ -54,14 +57,91 @@ function head(p) {
     roadmap:["Scope","The current evaluation uses synthetic CVE and KEV records."]
   };
   const note = notes[page.id];
-  return `<header class="sectionhead"><div><div class="kick">${String(page.n).padStart(2, "0")} · ${page.nav}</div><h1 class="title">${p.title}</h1><p class="lede">${p.lede}</p></div>${note ? `<aside class="definition"><b>${note[0]}</b>${note[1]}</aside>` : ""}</header>`;
+  return `<header class="sectionhead report-heading">
+    <div class="section-copy"><div class="kick">${String(page.n).padStart(2, "0")} · ${page.nav}</div><h1 class="title">${p.title}</h1><p class="lede">${p.lede}</p></div>
+    ${folioPlate(page.id)}
+    ${note ? `<aside class="definition"><b>${note[0]}</b>${note[1]}</aside>` : ""}
+  </header>`;
 }
-const kpi = (label, value, sub = "", cls = "", extra = "") => `<div class="card kpi ${cls}"><div class="v">${["RF PR-AUC","Modelled risk removed","Positive rate","Products matched"].includes(label) || label.startsWith("NSGA-II @") ? `<mark>${value}</mark>` : value}</div><div class="l">${label}</div><div class="s">${sub}</div>${extra}</div>`;
-function openDrawer(kick, title, html) {
+const metricNotes = {
+  "CVEs in corpus":"Each record represents one vulnerability with a complete observation window.",
+  "Exploited (label = 1)":"These vulnerabilities entered the study’s KEV records within one year of publication.",
+  "Positive rate":"Divide the number of positive labels by the number of eligible vulnerabilities.",
+  "Label window":"Every record gets this much follow-up time before its outcome is evaluated.",
+  "RF PR-AUC":"Summarizes how well the forest retrieves later-exploited CVEs as the decision threshold varies.",
+  "RF recall@100":"Of all positive test cases, this share appeared in the forest’s 100 highest-scored records.",
+  "Brier (calibrated)":"The mean squared difference between the calibrated probability and the observed zero-or-one outcome. Smaller values indicate lower error.",
+  "Test set":"These later records were held out when fitting and calibrating the model.",
+  "Patches selected":"Each selected patch updates a single product on one host. Open a recommended patch to inspect its benefit and cost.",
+  "Effort used":"The sum of hour costs for the selected patches. Dependencies and downtime limits can leave some budget unused.",
+  "Modelled risk removed":"The share of initial network risk removed by the selected patches under the linear risk calculation.",
+  "Later-exploited covered":"The share of later-exploited host–CVE instances covered by the plan. The hindsight switch reveals the measured outcome.",
+  "Solve time":"Elapsed time for the selected strategy to compute this plan.",
+  "Runtime":"Elapsed time for this optimizer run at the chosen population size and generation count.",
+  "Hosts":"Distinct hosts retained in the matched inventory. Each can have several installed products.",
+  "Products matched":"Distinct product names recognized after normalizing the uploaded software names.",
+  "Open CVEs attached":"Distinct vulnerabilities associated with matched products. One CVE can affect several hosts.",
+  "Candidate patches":"Each candidate combines a host and a product, and covers that product’s open CVEs on that host.",
+  "Gap to ILP":"The relative shortfall of the selected genetic solution against the exact linear benchmark.",
+  "Beats ILP by":"The improvement over the linear solver’s plan when scored on the extended objective."
+};
+function kpi(label, value, sub = "", cls = "", extra = "") {
+  const genetic = label.startsWith("NSGA-II @");
+  const highlight = genetic || ["RF PR-AUC","Modelled risk removed","Positive rate","Products matched"].includes(label);
+  const note = genetic ? "Risk removed by the genetic solution at the selected budget." : metricNotes[label];
+  const face = `<span class="v">${highlight ? `<mark>${value}</mark>` : value}</span><span class="l">${label}</span><span class="s">${sub}</span>`;
+  if (!note) return `<div class="card kpi ${cls}">${face}${extra}</div>`;
+  return `<details class="card kpi ${cls}"><summary>${face}${extra}</summary><p class="metric-note">${note}</p></details>`;
+}
+function press(button, selected) {
+  button.classList.toggle("on", selected);
+  button.setAttribute("aria-pressed", selected);
+}
+
+let overlayTrigger, drawerMarker, drawerFlight;
+function enterOverlay(focusTarget) {
+  overlayTrigger = document.activeElement;
+  document.querySelector(".app").inert = true;
+  focusTarget.focus();
+}
+function flyDrawer(closing) {
+  const drawer = $("#drawer");
+  if (!drawerMarker?.isConnected || Motion.reduced()) return null;
+  const start = drawerMarker.getBoundingClientRect(), end = drawer.getBoundingClientRect();
+  if (!start.width || !end.width) return null;
+  const marker = {transform:`translate(${start.left-end.left}px,${start.top-end.top}px) scale(${start.width/end.width},${start.height/end.height})`,opacity:.45,borderRadius:"24px"};
+  const sheet = {transform:"none",opacity:1,borderRadius:"0"};
+  return drawer.animate(closing ? [sheet,marker] : [marker,sheet], {
+    duration:closing ? 270 : 390,easing:"cubic-bezier(.2,.75,.22,1)"
+  });
+}
+function openDrawer(kick, title, html, origin=null) {
+  drawerFlight?.cancel();
+  drawerMarker = origin;
+  $("#drawer").classList.toggle("from-marker",Boolean(origin));
   $("#dk").textContent = kick; $("#dt").textContent = title; $("#db").innerHTML = html;
   $("#drawer").classList.add("open"); $("#scrim").classList.add("on");
+  enterOverlay($("#dx"));
+  if (origin) overlayTrigger = origin;
+  drawerFlight = flyDrawer(false);
 }
-function closeDrawer() { $("#side").classList.remove("open"); $("#drawer").classList.remove("open"); $("#scrim").classList.remove("on"); $("#modal").classList.remove("on"); }
+function closeDrawer(instant=false) {
+  drawerFlight?.cancel();
+  drawerFlight=null;
+  if (instant!==true && drawerMarker) {
+    drawerFlight=flyDrawer(true);
+    if (drawerFlight) { drawerFlight.onfinish=()=>closeDrawer(true); return; }
+  }
+  drawerMarker=null;
+  $("#drawer").classList.remove("from-marker");
+  $("#side").classList.remove("open");
+  $("#drawer").classList.remove("open");
+  $("#scrim").classList.remove("on");
+  $("#modal").classList.remove("on");
+  document.querySelector(".app").inert = false;
+  if (overlayTrigger?.isConnected) overlayTrigger.focus({preventScroll:true});
+  overlayTrigger = null;
+}
 function table(host, rows, cols, o = {}) {
   /* cols: {k,label,num,fmt,sort}; o:{pageSize,onRow,selKey,sortKey,desc,empty} */
   let sortKey = o.sortKey || cols[0].k, desc = o.desc ?? true, page = 0; const size = o.pageSize || 12;
@@ -70,10 +150,10 @@ function table(host, rows, cols, o = {}) {
     const sorted = [...rows].sort((a, b) => { const x = a[sortKey], y = b[sortKey]; return (typeof x === "string" ? x.localeCompare(y) : x - y) * (desc ? -1 : 1); });
     const pages = Math.max(1, Math.ceil(sorted.length / size)); page = Math.min(page, pages - 1);
     const part = sorted.slice(page * size, page * size + size);
-    host.innerHTML = `<div class="tw"><table><thead><tr>${cols.map(c => `<th class="${c.num ? "num" : ""} ${c.k === sortKey ? "sorted" : ""}" data-k="${c.k}">${c.label}${c.k === sortKey ? (desc ? " ↓" : " ↑") : ""}</th>`).join("")}</tr></thead>
-    <tbody>${part.length ? part.map((r, i) => `<tr class="${o.onRow ? "click" : ""} ${o.selKey && r[o.selKey.k] === o.selKey.v ? "sel" : ""}" data-i="${rows.indexOf(r)}">${cols.map(c => `<td class="${c.num ? "num" : ""}">${c.fmt ? c.fmt(r[c.k], r) : esc(r[c.k])}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${cols.length}" class="mut">${o.empty || "No rows"}</td></tr>`}</tbody></table></div>
+    host.innerHTML = `<div class="tw"><table><thead><tr>${cols.map(c => `<th class="${c.num ? "num" : ""} ${c.k === sortKey ? "sorted" : ""}" aria-sort="${c.k === sortKey ? (desc ? "descending" : "ascending") : "none"}" data-k="${c.k}"><button class="sort-btn">${c.label}${c.k === sortKey ? (desc ? " ↓" : " ↑") : ""}</button></th>`).join("")}</tr></thead>
+    <tbody>${part.length ? part.map((r, i) => `<tr ${o.onRow ? 'tabindex="0"' : ""} class="${o.onRow ? "click" : ""} ${o.selKey && r[o.selKey.k] === o.selKey.v ? "sel" : ""}" data-i="${rows.indexOf(r)}">${cols.map(c => `<td class="${c.num ? "num" : ""}">${c.fmt ? c.fmt(r[c.k], r) : esc(r[c.k])}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${cols.length}" class="mut">${o.empty || "No rows"}</td></tr>`}</tbody></table></div>
     <div class="pager"><span>${sorted.length} rows</span><button class="btn ghost sm" data-p="-1" ${page === 0 ? "disabled" : ""}>‹ Prev</button><span>${page + 1} / ${pages}</span><button class="btn ghost sm" data-p="1" ${page >= pages - 1 ? "disabled" : ""}>Next ›</button></div>`;
-    $$("th", host).forEach(th => th.onclick = () => { const k = th.dataset.k; if (k === sortKey) desc = !desc; else { sortKey = k; desc = true; } draw(); });
+    $$("th", host).forEach(th => th.onclick = () => { const k = th.dataset.k; if (k === sortKey) desc = !desc; else { sortKey = k; desc = true; } const focus = th.contains(document.activeElement); draw(); if (focus) host.querySelector(`[data-k="${k}"] button`).focus(); });
     $$("[data-p]", host).forEach(b => b.onclick = () => { page += +b.dataset.p; draw(); });
     if (o.onRow) $$("tbody tr.click", host).forEach(tr => tr.onclick = () => o.onRow(rows[+tr.dataset.i]));
   };
@@ -82,14 +162,30 @@ function table(host, rows, cols, o = {}) {
 function setBusy(el, on) { el && el.classList.toggle("busy", on); }
 
 /* ---------- shell ---------- */
+function setInkCursors(mode) {
+  const dark = mode === "dark", ink = dark ? "#efe9d5" : "#29362e";
+  const edge = dark ? "#26332b" : "#fff9e8", accent = dark ? "#ff9a76" : "#ad4028";
+  function cursor(shape, hotspot, fallback) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">${shape}</svg>`;
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${hotspot}, ${fallback}`;
+  }
+  const nib = color => `<path d="M2 2l4 19 6-6 8-4z" fill="${color}" stroke="${edge}" stroke-width="1.5"/><path d="M4 4l8 10" stroke="${edge}"/>`;
+  const style = document.documentElement.style;
+  style.setProperty("--pen", cursor(nib(ink), "2 2", "default"));
+  style.setProperty("--action", cursor(nib(accent), "2 2", "pointer"));
+  const target = '<circle cx="14" cy="14" r="6"/><path d="M14 2v7m0 10v7M2 14h7m10 0h7"/>';
+  style.setProperty("--probe", cursor(`<g fill="none" stroke="${edge}" stroke-width="3">${target}</g><g fill="none" stroke="${accent}" stroke-width="1.5">${target}</g>`, "14 14", "crosshair"));
+}
+
 function buildShell() {
   // The eight sections scroll sideways when they don't fit; Appendices sits outside the scroller so its dropdown is never clipped.
   $("#side").innerHTML = `<div class="navtrack"><div class="navscroll" id="navscroll">` +
     NAV.filter(p => !p.hidden).map(p => `<a class="nav" data-id="${p.id}" href="#/${p.id}"><span class="n">${String(p.n).padStart(2, "0")}</span><span class="t">${p.nav}</span></a>`).join("") +
     `<span class="nav-ink" id="navink" aria-hidden="true"></span></div>
     <details class="appendices"><summary>Appendices</summary><div class="dd">${NAV.filter(p=>p.hidden).map(p=>`<a class="nav" data-id="${p.id}" href="#/${p.id}"><span class="n">${String(p.n).padStart(2, "0")}</span>${p.nav}</a>`).join("")}</div></details></div>`;
-  $("#top").innerHTML = `<a class="wordmark" href="#/intro" title="Back to the cover"><span class="bulletin-mark" aria-hidden="true">✚</span><b>The Triage Bulletin</b></a><span class="running-title">Research series <b>/</b> No. 01 <b>/</b> Field report</span><span class="pill syn">Synthetic data</span><span class="grow"></span><button class="pill" id="invpill" title="Generate a new network inventory"></button><div class="seg themes"><button data-mode="light">Paper</button><button data-mode="dark">Darkroom</button></div>`;
+  $("#top").innerHTML = `<a class="wordmark" href="#/intro" title="Back to the cover">${bulletinMark}<b>The Triage Bulletin</b></a><span class="running-title">Research series <b>/</b> No. 01 <b>/</b> Field report</span><span class="pill syn">Synthetic data</span><span class="grow"></span><button class="pill" id="invpill" title="Generate a new network inventory"></button><div class="seg themes"><button data-mode="light">Paper</button><button data-mode="dark">Darkroom</button></div>`;
   const setMode = mode => {
+    setInkCursors(mode);
     document.documentElement.dataset.theme = mode;
     $$(".themes button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === mode));
   };
@@ -100,7 +196,9 @@ function buildShell() {
   $("#invpill").onclick = openInventoryModal;
   $("#dx").onclick = closeDrawer; $("#scrim").onclick = closeDrawer;
   document.addEventListener("keydown", e => {
-    if (e.target.matches("input,select,textarea")) return;
+    if (e.target.matches("tr.click") && ["Enter", " "].includes(e.key)) {
+      e.preventDefault(); e.target.click();
+    }
     if (e.key === "Escape") closeDrawer();
   });
 }
@@ -112,11 +210,12 @@ function updatePill() {
 }
 function openInventoryModal() {
   const m = $("#modal");
-  m.innerHTML = `<h2>New network inventory</h2><p class="sub">Generates a fresh random network (hosts, exposure, criticality, installed products, dependencies) from the same CVE pool. Every optimizer re-runs on it.</p>
-  <label class="f">Random seed</label><input type="number" id="m-seed" value="${Math.floor(Math.random() * 900 + 100)}">
-  <label class="f">Number of hosts (200–500)</label><input type="number" id="m-hosts" value="300" min="200" max="500">
+  m.innerHTML = `<h2 id="inventory-title">New network inventory</h2><p class="sub">Generates a fresh random network (hosts, exposure, criticality, installed products, dependencies) from the same CVE pool. Every optimizer re-runs on it.</p>
+  <label class="f" for="m-seed">Random seed</label><input type="number" id="m-seed" value="${Math.floor(Math.random() * 900 + 100)}">
+  <label class="f" for="m-hosts">Number of hosts (200–500)</label><input type="number" id="m-hosts" value="300" min="200" max="500">
   <div style="display:flex;gap:10px;margin-top:20px"><button class="btn" id="m-go">Generate</button><button class="btn ghost" id="m-x">Cancel</button></div>`;
   m.classList.add("on"); $("#scrim").classList.add("on");
+  enterOverlay($("#m-seed"));
   $("#m-x").onclick = closeDrawer;
   $("#m-go").onclick = async () => {
     $("#m-go").disabled = true; $("#m-go").textContent = "Generating…";
@@ -131,21 +230,34 @@ async function route(force) {
   if (!ST.meta) return;
   const id = (location.hash.replace(/^#\//, "") || "intro").split("?")[0];
   const page = PAGES[id] || PAGES.home, tok = ++_routeToken;
-  $$(".nav").forEach(n => n.classList.toggle("on", n.dataset.id === page.id)); closeDrawer();
+  TT.hide();
+  $$(".nav").forEach(n => n.classList.toggle("on", n.dataset.id === page.id)); closeDrawer(true);
   document.body.classList.toggle("is-intro", page.id === "intro");
   $(".appendices")?.removeAttribute("open");
   $(".appendices")?.classList.toggle("on", !!page.hidden);
   window.Motion?.navInk();
-  const v = $("#view"); v.style.animation = "none"; void v.offsetWidth; v.style.animation = "";
-  v.innerHTML = `<div class="card"><div class="skel" style="width:40%;margin-bottom:12px"></div><div class="skel" style="width:80%;margin-bottom:8px"></div><div class="skel" style="width:65%"></div></div>`;
-  try { await page.render(v, tok); if (tok !== _routeToken) return; }
-  catch (e) { if (tok === _routeToken) v.innerHTML = `<div class="card"><h2>Something went wrong</h2><p class="mut">${esc(e.message)}</p></div>`; console.error(e); }
-  if (!force) scrollTo({ top: 0 });
+  const v = $("#view");
+  let rendered;
+  // The page turn waits briefly for the new page so it usually turns onto content, not the skeleton.
+  const draw = () => {
+    v.style.animation = "none"; void v.offsetWidth; v.style.animation = "";
+    v.innerHTML = `<div class="card"><div class="skel" style="width:40%;margin-bottom:12px"></div><div class="skel" style="width:80%;margin-bottom:8px"></div><div class="skel" style="width:65%"></div></div>`;
+    if (!force) scrollTo({ top: 0 });
+    rendered = Promise.resolve().then(() => page.render(v, tok)).catch(e => {
+      if (tok === _routeToken) v.innerHTML = `<div class="card"><h2>Something went wrong</h2><p class="mut">${esc(e.message)}</p></div>`;
+      console.error(e);
+    });
+    return Promise.race([rendered, new Promise(r => setTimeout(r, 450))]);
+  };
+  await (window.FX ? FX.pageTurn(page.id, draw) : draw());
+  await rendered;
+  if (tok !== _routeToken) return;
   if (page.hidden) {
     $("#view .sectionhead")?.insertAdjacentHTML("afterend", '<div class="pagelinks"><a class="btn ghost sm" href="#/planner">Return to planner</a></div>');
   }
+  if (page.id === "evidence") $("#view .sectionhead")?.insertAdjacentHTML("afterend", '<div class="pagelinks"><a class="btn" href="#/replay">Replay two strategies on this inventory</a></div>');
   if (page.id === "planner") {
-    $("#view .sectionhead")?.insertAdjacentHTML("afterend", `<div class="pagelinks">${["upload","network","pareto","evidence"].map(id=>`<a class="btn ghost sm" href="#/${id}">${PAGES[id].nav}</a>`).join("")}</div>`);
+    $("#view .sectionhead")?.insertAdjacentHTML("afterend", `<div class="pagelinks">${["network","replay","upload","pareto","evidence"].map(id=>`<a class="btn ghost sm" href="#/${id}">${PAGES[id].nav}</a>`).join("")}</div>`);
   }
   if (window.Motion) window.Motion.after(v, page); else animateNumbers(v);   // Motion counts numbers up as they scroll into view
 }

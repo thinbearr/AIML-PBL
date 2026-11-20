@@ -14,7 +14,7 @@ button,input,select{font:inherit;color:inherit}button,.chip,.toggle,.opt,summary
 .masthead{font:700 clamp(36px,3.15vw,51px)/.94 var(--serif);letter-spacing:-.055em;margin:23px 0 13px}
 .issue,.navgroup,.running-title,.kick,.figure-label,.plate-label,.l{font:700 12px/1.5 var(--sans);letter-spacing:.11em;text-transform:uppercase}
 .issue{border-bottom:3px double var(--ink);padding-bottom:21px;font-size:10px}.navgroup{margin:25px 0 10px;color:var(--mut)}
-.wordmark{display:inline-flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none;white-space:nowrap}.wordmark b{font:700 24px/1 var(--serif);letter-spacing:-.04em}.wordmark .bulletin-mark{font:22px/1 Georgia,serif;color:var(--bad);transition:transform .5s cubic-bezier(.2,.8,.2,1)}.wordmark:hover .bulletin-mark{transform:rotate(90deg)}
+.wordmark{display:inline-flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none;white-space:nowrap}.wordmark b{font:700 24px/1 var(--serif);letter-spacing:-.04em}
 .side{border-bottom:3px double var(--ink);padding:0 clamp(16px,3vw,48px)}
 .navtrack{position:relative;display:flex;align-items:stretch;gap:8px;max-width:1510px;margin:auto}
 .navscroll{position:relative;display:flex;gap:2px;flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior-x:contain}.navscroll::-webkit-scrollbar{display:none}

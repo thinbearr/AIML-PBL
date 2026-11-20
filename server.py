@@ -9,6 +9,7 @@ import sys
 import threading
 import time
 import webbrowser
+from uuid import uuid4
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
@@ -22,7 +23,7 @@ WEB = ROOT / "web"
 sys.path.insert(0, str(ROOT / "src"))
 from common import PROC, RES, RAW, load_config  # noqa: E402
 import model as model_mod  # noqa: E402,F401  (needed to unpickle the featurizer)
-from simulate import build_inventory, build_from_table, load_scored  # noqa: E402
+from simulate import IMPACT, build_inventory, build_from_table, load_scored  # noqa: E402
 from data_synth import PRODUCTS  # noqa: E402
 from optimize import (Problem, select_random, select_by_score, select_greedy, select_ilp,  # noqa: E402
                       select_nsga2, pick_from_front, build_ext, ext_benefit)
@@ -39,6 +40,7 @@ class Inv:
         self.hosts, self.patches, self.links, self.seed = hosts.reset_index(drop=True), patches, links, seed
         self.T, self.D = float(patches.cost.sum()), float(patches.downtime.sum())
         self.total_risk = float(patches.benefit.sum())
+        self.inventory_id = uuid4().hex
         self.total_exploited = int(links.label.sum())
         self.top = links.sort_values("risk", ascending=False).drop_duplicates("patch_id").set_index("patch_id")
         self.hosts["initial_risk"] = self.hosts["host"].map(patches.groupby("host").benefit.sum()).fillna(0.0)
@@ -210,7 +212,7 @@ def prep(inv, deps):
 
 
 def solve(inv, strategy, pct, dt_frac, deps, ext):
-    key = (strategy, round(pct, 2), round(dt_frac, 3), deps, ext)
+    key = (strategy, pct, dt_frac, deps, ext)
     if key in inv.cache:
         return inv.cache[key]
     P = prep(inv, deps)
@@ -276,7 +278,7 @@ def api_plan(q):
               "x": float(inv.layout[i][0]), "y": float(inv.layout[i][1]), "initial": float(h.initial_risk),
               "residual": float(resid.get(h.host, 0.0)), "patched": h.host in patched}
              for i, h in enumerate(inv.hosts.itertuples())]
-    return {**summarize(inv, x, strategy, rt), "pct": pct, "budget": pct / 100 * inv.T, "total_cost": inv.T,
+    return {**summarize(inv, x, strategy, rt), "inventory_id": inv.inventory_id, "pct": pct, "budget": pct / 100 * inv.T, "total_cost": inv.T,
             "total_exploited": inv.total_exploited, "plan": rows, "hosts": hosts}
 
 
@@ -300,9 +302,28 @@ def api_patch(q):
     if r.requires >= 0:
         rr = inv.patches[inv.patches.patch_id == r.requires].iloc[0]
         req = {"patch_id": int(rr.patch_id), "product": rr.product}
+    top = meta.loc[cves[0]["cve_id"]]
+    nc = cfg["network"]
     return {"patch": {k: (v.item() if hasattr(v, "item") else v) for k, v in r.to_dict().items()},
             "n_total_cves": int(len(lk)), "cves": cves, "requires": req,
-            "formula": {"p_mean": float(lk.p_exploit.mean()), "sum_risk": float(lk.risk.sum())}}
+            "formula": {"p_mean": float(lk.p_exploit.mean()), "sum_risk": float(lk.risk.sum()),
+                        "top_impact": sum(IMPACT[top[k]] for k in ("c", "i", "a")) / 1.68,
+                        "exposure_weight": nc["exposure_weight"][r.exposure],
+                        "base_hours": nc["base_effort_hours"][r.ptype], "downtime_penalty": nc["downtime_penalty"]}}
+
+
+def api_replay(q):
+    """Both selections come from one inventory snapshot under the same constraints."""
+    inv = INV
+    _, pct, dt, deps, _ = params(q)
+    plans = []
+    for strategy, rank in (("cvss_sorted", "max_cvss"), ("ml_ilp", "benefit")):
+        x, rt = solve(inv, strategy, pct, dt, deps, False)
+        selected = inv.patches[x].sort_values([rank, "patch_id"], ascending=[False, True])
+        rows = selected[["patch_id", "host", "product", "cost", "benefit", "max_cvss", "requires"]]
+        plans.append({**summarize(inv, x, strategy, rt), "patches": rows.to_dict("records")})
+    return {"inventory_id": inv.inventory_id, "budget": pct / 100 * inv.T, "pct": pct,
+            "total_exploited": inv.total_exploited, "deps": deps, "plans": plans}
 
 
 def api_host(q):
@@ -458,7 +479,7 @@ def api_inventory(q):
 def api_meta(_):
     inv = INV
     mm = json.load(open(RES / "model_metrics.json"))["_meta"]
-    return {"source": inv.source, "name": inv.name, "report": inv.report, "seed": inv.seed, "hosts": len(inv.hosts), "patches": len(inv.patches), "total_cost": inv.T,
+    return {"inventory_id": inv.inventory_id, "source": inv.source, "name": inv.name, "report": inv.report, "seed": inv.seed, "hosts": len(inv.hosts), "patches": len(inv.patches), "total_cost": inv.T,
             "total_risk": inv.total_risk, "total_exploited": inv.total_exploited,
             "dependencies": int((inv.patches.requires >= 0).sum()), "model": mm,
             "downtime_default": cfg["optimize"]["downtime_fraction"] * 100,
@@ -469,7 +490,7 @@ def api_meta(_):
 ROUTES = {"/api/meta": api_meta, "/api/plan": api_plan, "/api/strategies": api_strategies, "/api/patch": api_patch,
           "/api/host": api_host, "/api/cves": api_cves, "/api/cve": api_cve, "/api/threshold": api_threshold,
           "/api/model": api_model, "/api/data": api_data, "/api/compare": api_compare, "/api/whatif": api_whatif,
-          "/api/pareto": api_pareto, "/api/inventory": api_inventory}
+          "/api/pareto": api_pareto, "/api/inventory": api_inventory, "/api/replay": api_replay}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -486,7 +507,11 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if u.path in ROUTES:
                 with LOCK:
-                    out = ROUTES[u.path](parse_qs(u.query))
+                    query = parse_qs(u.query)
+                    if "inventory_id" in query and q1(query, "inventory_id", "") != INV.inventory_id:
+                        self._send(409, b'{"error":"The inventory changed. Reload to inspect the current inventory."}', "application/json")
+                        return
+                    out = ROUTES[u.path](query)
                 self._send(200, json.dumps(out).encode(), "application/json")
                 return
             rel = "index.html" if u.path in ("/", "") else u.path.lstrip("/")

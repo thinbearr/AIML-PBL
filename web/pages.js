@@ -11,6 +11,7 @@ const NAV = [
   { id: "pipeline", n: "A1", nav: "How it works", hidden: true },
   { id: "data", n: "A2", nav: "Data & labels", hidden: true },
   { id: "cves", n: "A3", nav: "Explain a CVE", hidden: true },
+  { id: "replay", n: "A5", nav: "Strategy replay", hidden: true },
   { id: "extend", n: "A4", nav: "Extensions", hidden: true },
 ];
 const PAGES = {};
@@ -48,27 +49,36 @@ PAGES.pipeline.render = v => {
       <div class="chips mt" style="gap:8px"><span class="tag acc">EPSS fairness</span><span class="small">baseline uses EPSS as of the cutoff, never as a feature</span></div>
       <div class="chips mt" style="gap:8px"><span class="tag acc">Time split</span><span class="small">train → validation → test by date, never random</span></div></div>
     <div class="card"><h3>Reproducibility</h3><p class="sub">Everything driven by <span class="mono">config.yaml</span>.</p><ul style="margin:0;padding-left:18px;color:var(--ink2)"><li>Fixed random seeds, one-command run: <span class="mono">python run_pipeline.py</span></li><li>All assumptions (exposure weights, effort hours, cost ratio) in one file</li><li>Runs offline on a standard laptop</li></ul></div></div>`;
-  const svg = $("#arch"); const bw = 164, gap = 24, columns = svg.clientWidth < 540 ? 2 : svg.clientWidth < 900 ? 3 : 6;
-  svg.setAttribute("viewBox", `0 0 ${columns*(bw+gap)-12} ${Math.ceil(STAGES.length/columns)*176}`);
-  STAGES.forEach((s, i) => {
-    const x = 6 + i % columns * (bw + gap), row = S("g",{transform:`translate(0 ${Math.floor(i/columns)*176})`},svg);
-    const g = S("g", { class: "stage", "data-id": s.id,role:"button",tabindex:0 }, row);
-    S("rect", { x, y: 18, width: bw, height: 120, rx: 1, fill: "var(--surface2)", stroke: "var(--line2)", "stroke-width": 1.2 }, g);
-    S("text", { x: x + 14, y: 44, style: "fill:var(--acc);font:600 11px var(--mono);letter-spacing:.1em" }, g).textContent = s.t.split(" · ")[0].padStart(2, "0") + " STAGE";
-    S("text", { x: x + 14, y: 68, style: "fill:var(--ink);font:600 15px var(--serif)" }, g).textContent = s.t.split(" · ")[1];
-    S("text", { x: x + 14, y: 90, style: "fill:var(--mut);font:500 10.5px var(--mono)" }, g).textContent = s.f;
-    S("text", { x: x + 14, y: 112, style: "fill:var(--ink2);font:11px var(--sans)" }, g).textContent = s.out.length > 26 ? s.out.slice(0, 25) + "…" : s.out;
-    if ((i + 1) % columns !== 0) { S("path", { d: `M${x + bw + 3} 78 h${gap - 8}`, stroke: "var(--acc)", "stroke-width": 2, fill: "none" }, row); S("path", { d: `M${x + bw + gap - 8} 72 l6 6 -6 6`, stroke: "var(--acc)", "stroke-width": 2, fill: "none" }, row); }
-    S("text", { x: x + bw / 2, y: 164, "text-anchor": "middle", style: `font:600 10px var(--sans);letter-spacing:.12em;fill:${s.st === "synthetic" ? "var(--acc2)" : "var(--good)"}` }, row).textContent = s.st === "synthetic" ? "SYNTHETIC IN PROTOTYPE" : "IMPLEMENTED";
-    g.onkeydown=e=>{if(e.key==="Enter" || e.key===" "){e.preventDefault();showStage(s.id);}};
-    g.addEventListener("click", () => showStage(s.id));
-  });
+  const svg = $("#arch");
+  let selected = "model";
+  function layoutStages() {
+    trackChartWidth(svg, layoutStages);
+    const bw = 164, gap = 24, columns = svg.clientWidth < 540 ? 2 : svg.clientWidth < 900 ? 3 : 6;
+    svg.replaceChildren();
+    svg.setAttribute("viewBox", `0 0 ${columns*(bw+gap)-12} ${Math.ceil(STAGES.length/columns)*176}`);
+    STAGES.forEach((s, i) => {
+      const x = 6 + i % columns * (bw + gap), row = S("g",{transform:`translate(0 ${Math.floor(i/columns)*176})`},svg);
+      const g = S("g", { class: "stage", "data-id": s.id,role:"button",tabindex:0 }, row);
+      S("rect", { x, y: 18, width: bw, height: 120, rx: 1, fill: "var(--surface2)", stroke: "var(--line2)", "stroke-width": 1.2 }, g);
+      S("text", { x: x + 14, y: 44, style: "fill:var(--acc);font:600 11px var(--mono);letter-spacing:.1em" }, g).textContent = s.t.split(" · ")[0].padStart(2, "0") + " STAGE";
+      S("text", { x: x + 14, y: 68, style: "fill:var(--ink);font:600 15px var(--serif)" }, g).textContent = s.t.split(" · ")[1];
+      S("text", { x: x + 14, y: 90, style: "fill:var(--mut);font:500 10.5px var(--mono)" }, g).textContent = s.f;
+      S("text", { x: x + 14, y: 112, style: "fill:var(--ink2);font:11px var(--sans)" }, g).textContent = s.out.length > 26 ? s.out.slice(0, 25) + "…" : s.out;
+      if ((i + 1) % columns !== 0) { S("path", { d: `M${x + bw + 3} 78 h${gap - 8}`, stroke: "var(--acc)", "stroke-width": 2, fill: "none" }, row); S("path", { d: `M${x + bw + gap - 8} 72 l6 6 -6 6`, stroke: "var(--acc)", "stroke-width": 2, fill: "none" }, row); }
+      S("text", { x: x + bw / 2, y: 164, "text-anchor": "middle", style: `font:600 10px var(--sans);letter-spacing:.12em;fill:${s.st === "synthetic" ? "var(--acc2)" : "var(--good)"}` }, row).textContent = s.st === "synthetic" ? "SYNTHETIC IN PROTOTYPE" : "IMPLEMENTED";
+      g.onkeydown=e=>{if(e.key==="Enter" || e.key===" "){e.preventDefault();showStage(s.id);}};
+      g.addEventListener("click", () => showStage(s.id));
+    });
+    showStage(selected);
+  }
   function showStage(id) {
+    selected = id;
     const s = STAGES.find(x => x.id === id);
     $$(".stage").forEach(e => e.classList.toggle("on", e.dataset.id === id));
     $("#stage-detail").innerHTML = `<div class="head"><div class="grow"><h2>${esc(s.t)}</h2><div class="sub mono">${esc(s.f)} → ${esc(s.out)}</div></div><span class="tag ${s.st === "synthetic" ? "amb" : "good"}">${s.st === "synthetic" ? "synthetic data" : "implemented"}</span></div><p style="color:var(--ink2);margin-top:0">${esc(s.what)}</p><ul style="color:var(--ink2);margin:0;padding-left:18px">${s.bullets.map(b => `<li>${esc(b)}</li>`).join("")}</ul>`;
   }
-  showStage("model");
+  layoutStages();
+  traceCve(svg.closest(".card"), svg);
 };
 
 /* ============================== 3. DATA & LABELS ============================== */
@@ -107,7 +117,7 @@ PAGES.model.render = async (v, token) => {
     <div class="grid g2 mt"><div class="card"><h3>PR-AUC (higher is better)</h3><p class="sub">Area under the precision–recall curve · test period</p><div id="m-pr"></div></div><div class="card"><h3>Recall @ top-100</h3><p class="sub">Share of all exploited CVEs found in the model's 100 highest-ranked CVEs</p><div id="m-rc"></div></div></div>
     <div class="callout mt">EPSS ranks higher than our model here. That is expected and reported as-is: EPSS uses signals (exploit chatter, telemetry) that NVD fields cannot provide, so it is a <b>competing baseline, never a feature</b>.</div>
     <div class="grid g2 mt"><div class="card"><h3>Cost-sensitive threshold</h3><p class="sub">Choose the cut-off that minimises <span class="mono">FN×cost + FP×1</span> on the validation set, then judge it on the test set.</p>
-      <label class="f">Cost of a missed exploit vs a false alarm <span class="val" id="r-val">50 : 1</span></label><input type="range" id="ratio" min="0" max="100" value="68"><div id="thr" style="margin-top:14px"></div></div>
+      <label class="f" for="ratio">Cost of a missed exploit vs a false alarm <span class="val" id="r-val">50 : 1</span></label><input type="range" id="ratio" min="0" max="100" value="68"><div id="thr" style="margin-top:14px"></div></div>
     <div class="card"><h3>Calibration (test)</h3><p class="sub">Predicted probability vs observed rate. On the diagonal = trustworthy as a risk value.</p><div id="m-cal"></div><p class="small mut" style="margin:8px 0 0">Brier score improves from <b>${nf(rf.brier_raw, 4)}</b> (raw forest votes) to <b>${nf(rf.brier_calibrated, 4)}</b> after isotonic calibration.</p></div></div>
     <div class="grid g2 mt"><div class="card"><h3>What the Random Forest relies on</h3><p class="sub">Feature importance (top 15)</p><div id="m-fi"></div></div>
     <div class="card"><h3>The interpretable Decision Tree</h3><p class="sub">Top four levels — readable rules an analyst can challenge.</p><pre style="max-height:360px;overflow:auto;font:15px/1.5 var(--mono);background:var(--surface2);padding:12px;border-radius:1px;margin:0">${esc(m.tree)}</pre></div></div>`;
@@ -134,13 +144,13 @@ PAGES.model.render = async (v, token) => {
 PAGES.cves.render = async v => {
   v.innerHTML = head({ kick: "Step 5 · Explainability", title: "Why did this CVE get this score?", lede: "Pick any CVE. The page shows the probability, how it ranks, and which groups of features pushed it up or down.",
     explain: { what: "A searchable list of test-period CVEs with model score, CVSS and EPSS. Selecting one explains the score by group marginalisation: each feature group is swapped for values from 80 real training CVEs and the change in the forest's score is measured.", why: "Analysts will not act on a black-box number. This also shows why a CVSS-9.8 CVE can rank below a CVSS-7 one that is network-reachable and easy to exploit.", say: "Pick a high p_exploit CVE with a modest CVSS score — that is the story. (SHAP values are the Phase 3 upgrade of this view.)" } }) +
-    `<div class="grid g12"><div class="card"><div class="head"><div class="grow"><input type="text" id="c-q" placeholder="Search CVE id or product…"></div></div>
-    <div class="chips" style="margin-bottom:12px" id="c-sort"><span class="chip on" data-s="p_exploit">Highest model risk</span><span class="chip" data-s="cvss">Highest CVSS</span><span class="chip" data-s="epss">Highest EPSS</span></div><div id="c-list"></div></div><div id="c-detail"></div></div>`;
+    `<div class="grid g12"><div class="card"><div class="head"><div class="grow"><input type="text" id="c-q" aria-label="Search CVE ID or product" placeholder="Search CVE id or product…"></div></div>
+    <div class="chips" style="margin-bottom:12px" id="c-sort"><button class="chip on" data-s="p_exploit">Highest model risk</button><button class="chip" data-s="cvss">Highest CVSS</button><button class="chip" data-s="epss">Highest EPSS</button></div><div id="c-list"></div></div><div id="c-detail"></div></div>`;
   let sort = "p_exploit", page = 0, selected = null;
   const load = async () => {
     const d = await api("/api/cves", { q: $("#c-q").value, sort, page, split: "test" });
     if (!$("#c-list")) return d;
-    $("#c-list").innerHTML = `<div class="tw" style="max-height:540px"><table><thead><tr><th>CVE</th><th>Product</th><th class="num">CVSS</th><th class="num">EPSS</th><th class="num">p_exploit</th></tr></thead><tbody>${d.rows.map(r => `<tr class="click ${r.cve_id === selected ? "sel" : ""}" data-id="${r.cve_id}"><td class="mono">${r.cve_id}</td><td>${esc(r.product)}</td><td class="num">${nf(r.cvss, 1)}</td><td class="num">${nf(r.epss, 2)}</td><td class="num"><b style="color:var(--acc)">${nf(r.p_exploit, 3)}</b></td></tr>`).join("")}</tbody></table></div>
+    $("#c-list").innerHTML = `<div class="tw" style="max-height:540px"><table><thead><tr><th>CVE</th><th>Product</th><th class="num">CVSS</th><th class="num">EPSS</th><th class="num">p_exploit</th></tr></thead><tbody>${d.rows.map(r => `<tr tabindex="0" class="click ${r.cve_id === selected ? "sel" : ""}" data-id="${r.cve_id}"><td class="mono">${r.cve_id}</td><td>${esc(r.product)}</td><td class="num">${nf(r.cvss, 1)}</td><td class="num">${nf(r.epss, 2)}</td><td class="num"><b style="color:var(--acc)">${nf(r.p_exploit, 3)}</b></td></tr>`).join("")}</tbody></table></div>
     <div class="pager"><span>${nf(d.total)} CVEs</span><button class="btn ghost sm" id="c-prev" ${page === 0 ? "disabled" : ""}>‹</button><span>${page + 1}</span><button class="btn ghost sm" id="c-next" ${(page + 1) * 20 >= d.total ? "disabled" : ""}>›</button></div>`;
     $$("#c-list tr.click").forEach(tr => tr.onclick = () => select(tr.dataset.id));
     $("#c-prev").onclick = () => { page--; load(); }; $("#c-next").onclick = () => { page++; load(); };

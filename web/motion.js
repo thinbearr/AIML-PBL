@@ -1,12 +1,106 @@
+/* The illustrations on the section dividers are schematic printing plates. */
+function folioPlate(page) {
+  const topology = '<path d="m12 42 27-23 31 12 37-15M39 19l18 35 13-23 19 16 18-31"/>' +
+    [[12,42],[39,19],[57,54],[70,31],[89,47],[107,16]].map(([x,y]) =>
+      `<circle cx="${x}" cy="${y}" r="3.5"/>`).join("");
+  const bars = '<path d="M14 53h92"/><path class="plate-columns" d="M22 51V39h9v12zm20 0V29h9v22zm20 0V33h9v18zm20 0V14h9v37z"/>';
+  const ledger = '<path d="M26 16h76M26 30h63M26 44h72M26 52h40"/><path class="plate-columns" d="M13 13h5v5h-5zm0 14h5v5h-5zm0 14h5v5h-5z"/>';
+  const curve = '<path d="M12 11v43h93"/><path class="plate-trace" d="M13 49c14-1 19-5 27-14s17-6 28-10 12-13 35-14"/><path class="plate-guide" d="m14 49 84-34"/>';
+  const phases = '<path d="M10 44h24V30h27V18h45"/><circle cx="18" cy="44" r="4"/><circle cx="47" cy="30" r="4"/><circle cx="83" cy="18" r="4"/>';
+  const print = {network:topology,extend:topology,model:curve,pareto:curve,evidence:bars,data:bars,
+    planner:ledger,upload:ledger,cves:ledger,pipeline:phases,roadmap:phases}[page] || ledger;
+  return `<button class="folio" type="button" aria-label="Separate the illustration layers" aria-pressed="false">
+    <span class="folio-shadow" aria-hidden="true"></span>
+    <span class="folio-camera" aria-hidden="true"><span class="folio-stack">
+      <span class="folio-layer folio-board"></span><span class="folio-layer folio-grid"></span>
+      <span class="folio-layer folio-proof"><svg viewBox="0 0 120 64" focusable="false">${print}</svg></span>
+    </span></span></button>`;
+}
+
 /* Motion layer: headline reveals, scroll reveals, scroll-linked text, reading progress, parallax, nav underline.
    Everything here is decoration. With prefers-reduced-motion the page renders fully and statically. */
 window.Motion = (() => {
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finePointer = matchMedia("(hover: hover) and (pointer: fine)");
+  const halo = document.createElement("div");
+  halo.className = "ink-cursor";
+  halo.setAttribute("aria-hidden","true");
+  document.body.append(halo);
+  let litSurface, depthSurface, pointerFrame, latestPointer;
+  const depthTargets = ".folio,.atlas,.cover-inner,.cover-figures a,.stat,.kpi,.step,.marginal,.drop,.contents li,.phase";
+  function resetDepth() {
+    if (!depthSurface) return;
+    depthSurface.classList.remove("tilting");
+    for (const key of ["--rotate-x","--rotate-y"]) depthSurface.style.removeProperty(key);
+    depthSurface = null;
+  }
+  function clearPointer() {
+    cancelAnimationFrame(pointerFrame);
+    pointerFrame = 0;
+    halo.classList.remove("active");
+    litSurface?.classList.remove("ink-surface");
+    litSurface = null;
+    resetDepth();
+  }
+  function paintPointer() {
+    pointerFrame = 0;
+    const {target,clientX,clientY} = latestPointer;
+    const surface = target.closest(".card,.cover-figures a,.step,.plate");
+    const depth = target.closest(depthTargets);
+    if (depth !== depthSurface) {
+      resetDepth();
+      depthSurface = depth;
+      depth?.classList.add("tilting");
+    }
+    if (depth) {
+      const rect = depth.getBoundingClientRect();
+      const normalized = (value, start, length) => Math.max(-1,Math.min(1,2*(value-start)/length-1));
+      const amplitude = depth.matches(".folio") ? 18 : depth.matches(".atlas,.cover-inner") ? 3 : 6;
+      depth.style.setProperty("--rotate-x", (-amplitude*normalized(clientY,rect.top,rect.height)).toFixed(2)+"deg");
+      depth.style.setProperty("--rotate-y", (amplitude*normalized(clientX,rect.left,rect.width)).toFixed(2)+"deg");
+    }
+    if (surface !== litSurface) {
+      litSurface?.classList.remove("ink-surface");
+      litSurface = surface;
+      surface?.classList.add("ink-surface");
+    }
+    if (surface) {
+      const r = surface.getBoundingClientRect();
+      surface.style.setProperty("--light-x", (clientX-r.left)+"px");
+      surface.style.setProperty("--light-y", (clientY-r.top)+"px");
+    }
+    const inspect = target.closest(".figure-mark,.chart-probe,.host-node,.atlas-pin");
+    const control = target.closest("a,button,summary,.drop,.stage");
+    halo.dataset.mode = inspect ? "probe" : "ink";
+    halo.classList.toggle("active", Boolean(inspect || control));
+    halo.style.transform = `translate3d(${clientX}px,${clientY}px,0)`;
+  }
+  document.addEventListener("pointermove", e => {
+    if (e.pointerType !== "mouse" || !finePointer.matches || reduced()) { clearPointer(); return; }
+    latestPointer = e;
+    if (!pointerFrame) pointerFrame = requestAnimationFrame(paintPointer);
+  }, {passive:true});
+  document.addEventListener("pointerout", e => { if (!e.relatedTarget) clearPointer(); });
+  document.addEventListener("focusin", clearPointer);
+  window.addEventListener("blur",clearPointer);
+  window.addEventListener("scroll",clearPointer,{passive:true});
+  document.addEventListener("click", event => {
+    const folio = event.target.closest(".folio");
+    if (!folio) return;
+    const separated = folio.getAttribute("aria-pressed") !== "true";
+    folio.setAttribute("aria-pressed", String(separated));
+    folio.setAttribute("aria-label", separated ? "Stack the illustration layers" : "Separate the illustration layers");
+  });
+  const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
+  motionPreference.addEventListener("change", clearPointer);
   const REVEAL = [".sectionhead .lede", ".sectionhead .definition", ".opening .lede", ".opening .plate", ".opening .btn", ".opening .textlink",
     ".scoreboard .stat", ".card", ".marginal", ".flow .step", ".view > h2", ".finding", ".callout", ".phase", ".footnotes", ".pagelinks",
     "#criteria li", ".rv-intro"].join(",");
   const FILL = ".finding, .callout, .marginal p, .scrolltext";
-  let io, fills = [], parallax = [];
+  let io, fills = [], parallax = [], cover;
+  const visibleFolios = new IntersectionObserver(entries => {
+    for (const entry of entries) entry.target.classList.toggle("is-visible", entry.isIntersecting);
+  });
 
   /* Split the text of an element into word spans, keeping inline markup (<b>, <mark>, <br>) intact. */
   function splitWords(root, cls) {
@@ -93,6 +187,11 @@ window.Motion = (() => {
     const y = scrollY, vh = innerHeight, max = document.documentElement.scrollHeight - vh;
     const bar = document.getElementById("progress"); if (bar) bar.style.transform = `scaleX(${max > 0 ? Math.min(1, y / max) : 0})`;
     document.getElementById("chrome")?.classList.toggle("scrolled", y > 8);
+    if (cover?.isConnected && !reduced()) {
+      const progress = Math.min(1, Math.max(0, y / Math.max(1,cover.offsetHeight)));
+      cover.style.setProperty("--page-turn", (progress*9).toFixed(2)+"deg");
+      cover.style.setProperty("--page-lift", (progress*-20).toFixed(1)+"px");
+    }
     // A word is faint only while it sits in the bottom quarter of the screen; anything a reader is looking at is full ink.
     const atEnd = y >= max - 4, line = vh * .75;
     for (const f of fills) {
@@ -143,6 +242,10 @@ window.Motion = (() => {
   document.addEventListener("scroll", e => { if (e.target.id === "navscroll") navEdges(); }, true);
 
   function after(view) {
+    clearPointer();
+    visibleFolios.disconnect();
+    for (const folio of view.querySelectorAll(".folio")) visibleFolios.observe(folio);
+    cover = view.querySelector(".cover.spread");
     chromeHeight(); navInk();
     if (reduced()) { onScroll(); return; }
     headline(view);

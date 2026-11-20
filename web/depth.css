@@ -1,0 +1,132 @@
+﻿/* Folded-paper identity and depth shared by the cover and report sections. */
+.bulletin-logo {display:block;flex:none;width:36px;height:36px;object-fit:contain}
+.wordmark .bulletin-logo {width:29px;height:29px}
+.colophon-brand {display:inline-flex;align-items:center;gap:9px}
+.colophon-brand .bulletin-logo {width:25px;height:25px}
+.ticker-fold {display:inline-block;width:9px;height:11px;flex:none;background:linear-gradient(135deg,#a8d4b9 58%,#698f7d 59%);clip-path:polygon(0 0,58% 0,100% 38%,100% 100%,0 100%)}
+[data-theme=dark] .bulletin-logo {filter:drop-shadow(0 0 1px #9cc1af)}
+
+.sectionhead.report-heading,.sectionhead.report-heading:has(.definition) {
+  display:grid;grid-template-columns:minmax(0,1fr) clamp(170px,22vw,285px);
+  align-items:center;gap:0 clamp(20px,4vw,64px)
+}
+.report-heading .section-copy {min-width:0}
+.report-heading .definition {grid-column:1;grid-row:2;margin-top:18px;max-width:72ch}
+.report-heading .folio {grid-column:2;grid-row:1 / span 2;justify-self:center}
+.folio {
+  --board:#214b42;--plate:#8fbaa0;--proof:#f2edd8;--linework:#23584f;
+  position:relative;display:grid;place-items:center;isolation:isolate;perspective:660px;
+  width:100%;height:clamp(144px,14vw,205px);padding:0;border:0;background:transparent;color:var(--ink);touch-action:manipulation
+}
+[data-theme=dark] .folio {--board:#213e37;--plate:#75a48a;--proof:#e8e5cc}
+.folio-shadow {position:absolute;width:69%;height:25%;bottom:13%;border-radius:50%;background:radial-gradient(ellipse,#183b2e44,transparent 71%);transform:rotate(-14deg)}
+.folio-camera {display:block;width:55%;aspect-ratio:1.42;position:relative;transform-style:preserve-3d;transform:rotateX(var(--rotate-x,0deg)) rotateY(var(--rotate-y,0deg))}
+.folio-stack {position:absolute;inset:0;transform-style:preserve-3d;transform:rotateX(48deg) rotateZ(-29deg)}
+.folio-layer {position:absolute;inset:0;display:block;border:1px solid #315548;box-shadow:1px 2px 0 #213f32}
+.folio-board {background:var(--board);transform:translate3d(-3px,2px,-11px)}
+.folio-grid {
+  background-color:var(--plate);
+  background-image:linear-gradient(#375e513b 1px,transparent 1px),linear-gradient(90deg,#375e513b 1px,transparent 1px);
+  background-size:10px 10px;transform:translate3d(0,0,0)
+}
+.folio-proof {
+  display:grid;place-items:center;background:var(--proof);transform:translate3d(3px,-2px,12px);
+  clip-path:polygon(0 0,86% 0,100% 18%,100% 100%,0 100%);color:var(--linework)
+}
+.folio-proof:after {content:"";position:absolute;right:-1px;top:-1px;width:14%;height:18%;background:#a2b49c;clip-path:polygon(0 0,100% 100%,0 100%)}
+.folio-proof svg {width:86%;height:82%;overflow:visible;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.folio-proof circle {fill:#e3a472;stroke:var(--linework)}
+.plate-columns {fill:#749b80}.plate-guide {stroke-dasharray:3 5;opacity:.55}.plate-trace {stroke-width:3.2}
+.folio[aria-pressed=true] .folio-board {transform:translate3d(-10px,6px,-26px) rotateZ(-5deg)}
+.folio[aria-pressed=true] .folio-proof {transform:translate3d(9px,-6px,32px) rotateZ(5deg)}
+.folio[aria-pressed=true] .folio-grid {transform:rotateZ(-2deg)}
+.folio:focus-visible {outline-offset:-5px}
+.atlas {isolation:isolate;box-shadow:2px 3px 0 #53695c,4px 5px 0 var(--surface),6px 7px 0 var(--line2),9px 12px 14px #183b2916}
+@media(max-width:680px) {
+  .sectionhead.report-heading,.sectionhead.report-heading:has(.definition) {
+    grid-template-columns:minmax(0,1fr) 90px;gap:0 4px
+  }
+  .report-heading .section-copy {display:contents}
+  .report-heading .kick {grid-column:1;grid-row:1}
+  .report-heading h1,.report-heading .lede {grid-column:1 / -1}
+  .report-heading .folio {grid-row:1;height:62px}
+  .folio-camera {width:62%}
+  .report-heading h1.title {margin-top:0}
+  .folio[aria-pressed=true] .folio-proof {transform:translate3d(5px,-2px,21px) rotateZ(5deg)}
+  .cover-brand .bulletin-logo {width:29px;height:29px}
+}
+
+@media(prefers-reduced-motion:no-preference) {
+  .cover-brand,.wordmark {perspective:320px}
+  .bulletin-logo {transform-origin:20% 70%;transition:transform .55s var(--ease),filter .4s}
+  :is(.cover-brand,.wordmark):is(:hover,:focus-visible) .bulletin-logo {
+    transform:rotateY(-30deg) rotateX(12deg) rotateZ(-5deg) translateZ(5px);filter:drop-shadow(3px 3px 0 var(--line))
+  }
+  .folio-camera {transition:transform .26s ease-out}
+  .folio-layer {transition:transform .7s var(--ease),box-shadow .5s}
+  .folio.is-visible .folio-stack {animation:float-folio 7s ease-in-out infinite alternate}
+  .folio.is-visible .folio-shadow {animation:folio-shadow 7s ease-in-out infinite alternate}
+  @keyframes float-folio {
+    from {transform:translateY(4px) rotateX(49deg) rotateY(-5deg) rotateZ(-27deg)}
+    to {transform:translateY(-5px) rotateX(37deg) rotateY(9deg) rotateZ(-19deg)}
+  }
+  @keyframes folio-shadow {to {opacity:.6;scale:.84}}
+  .atlas,.cover-inner,.kpi,.stat,.step,.marginal,.drop,.cover-figures a,.contents li,.phase {
+    transition:transform .48s var(--ease),box-shadow .4s,border-color .3s,opacity .65s,translate .65s var(--ease)
+  }
+  :is(.atlas,.cover-inner,.kpi,.stat,.step,.marginal,.drop,.cover-figures a,.contents li,.phase).tilting {
+    transform:perspective(950px) rotateX(var(--rotate-x,0deg)) rotateY(var(--rotate-y,0deg)) translateZ(4px);
+    transition-duration:.16s;transform-style:preserve-3d
+  }
+  .atlas {animation:mount-atlas .95s var(--ease) backwards;transform-origin:55% 72%}
+  @keyframes mount-atlas {
+    from {opacity:.3;transform:perspective(1050px) translate3d(0,20px,-90px) rotateX(16deg) rotateY(-15deg)}
+    to {opacity:1;transform:none}
+  }
+  .spread .cover-title,.spread .cover-title em {animation-name:masthead-fold;transform-origin:25% 85%}
+  @keyframes masthead-fold {
+    from {opacity:0;transform:perspective(750px) rotateX(-32deg) translate3d(0,20px,-30px)}
+    to {opacity:1;transform:none}
+  }
+  .cover-inner {rotate:x var(--page-turn,0deg);transform-origin:left bottom}
+  .cover .atlas {translate:0 var(--page-lift,0px)}
+  .tilting:is(.stat,.kpi,.cover-figures a) .v {transform:translateZ(15px)}
+  .kpi.tilting,.drop.tilting {box-shadow:2px 5px 0 var(--bg2),3px 9px 18px #18291c16}
+  .rv:is(.card,.stat,.step,.marginal,.footnotes,.callout,.phase,.pagelinks):not(.in):not(:focus-within) {
+    transform-origin:center top;transform:perspective(1100px) rotateX(9deg) translateZ(-20px)
+  }
+  .rv:is(.card,.stat,.step,.marginal,.footnotes,.callout,.phase,.pagelinks) {
+    transition-property:transform,translate,opacity,border-color,box-shadow;transition-duration:.65s,.65s,.65s,.3s,.4s
+  }
+  .rv.tilting {transition-duration:.16s}
+  .hw-mask {perspective:460px}
+  h1.title.split .hw {transform-origin:50% 100%;animation-name:type-fold}
+  @keyframes type-fold {from {transform:translate3d(0,100%,-30px) rotateX(-65deg)} to {transform:none}}
+  .btn:active,.opt:active,.chip:active,.toggle:active,.kpi summary:active {
+    transform:perspective(500px) rotateX(5deg) scale(.985)
+  }
+  .drawer.open {animation:drawer-unfold .38s var(--ease);transform-origin:right center}
+  .modal.on {animation:modal-unfold .35s var(--ease)}
+  @keyframes drawer-unfold {from {opacity:.2;transform:perspective(1200px) translateX(12%) rotateY(-16deg)} to {opacity:1;transform:none}}
+  @keyframes modal-unfold {from {opacity:.2;transform:translate(-50%,-46%) perspective(800px) rotateX(-12deg)} to {opacity:1;transform:translate(-50%,-50%)}}
+  .contents li:focus-within,.cover-figures a:focus-visible,.step:focus-visible {transform:perspective(800px) rotateX(3deg) translateY(-2px)}
+  .hb .t {perspective:550px}
+  .hb .t svg {transform-origin:left bottom;transition:transform .28s var(--ease),filter .28s}
+  .hb:is(:hover,:focus-visible) .t svg {
+    transform:rotateX(17deg) translateY(-2px);
+    filter:drop-shadow(0 3px 0 color-mix(in srgb,var(--bar-ink) 40%,var(--bg2)))
+  }
+  .sized-chart .plot-line {transition:filter .25s}
+  .sized-chart svg:has(.chart-probe:is(:hover,:focus-visible)) .plot-line {
+    filter:drop-shadow(0 3px 1px color-mix(in srgb,var(--ink) 28%,transparent))
+  }
+  .drop {position:relative;padding-top:50px}
+  .drop:before,.drop:after {
+    content:"";position:absolute;left:calc(50% - 12px);width:24px;height:16px;top:21px;
+    border:1px solid var(--acc);transition:transform .4s var(--ease);pointer-events:none
+  }
+  .drop:before {background:var(--bg2);transform:rotate(-9deg) translateY(-3px)}
+  .drop:after {background:var(--acc);transform-origin:bottom}
+  .drop:is(:hover,:focus-visible,.over):before {transform:rotate(-14deg) translateY(-8px)}
+  .drop:is(:hover,:focus-visible,.over):after {transform:perspective(90px) rotateX(-50deg)}
+}
